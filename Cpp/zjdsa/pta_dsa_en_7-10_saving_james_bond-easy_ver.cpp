@@ -13,15 +13,15 @@ struct Point {
 struct Crocodiles {
     int nums;
     Point *list;
-    bool *veds;
+    bool *visited;
     Crocodiles(int n) : nums(n){
         list = new Point[nums + 2];
-        veds = new bool [nums + 2]{};//set to zero;
+        visited = new bool [nums + 2]{};//set to zero;
         for (int i = 0;i < nums; ++i)
             scanf("%d %d ", &list[i].x, &list[i].y);
     }
     ~Crocodiles(){
-        delete[] veds;
+        delete[] visited;
         delete[] list;
     }
 };
@@ -39,10 +39,10 @@ public:
         while (top >= 0){
             int i;
             for (i = 0; i < ccdls.nums; ++i){
-                if (ccdls.veds[i] == false){//not yet jumpped to;
+                if (ccdls.visited[i] == false){//not yet visited;
                     if ( ableToJump(ccdls.list[i]) ){
                         crtPos = *(stack[++top] = &ccdls.list[i]);//push pointer;
-                        ccdls.veds[i] = true;
+                        ccdls.visited[i] = true;
                         if (isSafe()) return true;
                         break;
                     }
@@ -67,12 +67,7 @@ public:
             return cmp <= (maxJumpDist + kRadi) * (maxJumpDist + kRadi);
         return cmp <= maxJumpDist * maxJumpDist;
     }
-    // double distanceTo(const Point& tar){
-    //     return pow( 
-    //         pow(fabs(tar.x - crtPos.x), 2 ) + pow(fabs(tar.y - crtPos.y), 2),
-    //         0.5 
-    //     );
-    // }
+
 private:
     int maxJumpDist;
     int top = -1;

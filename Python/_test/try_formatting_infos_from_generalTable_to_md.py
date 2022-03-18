@@ -1,3 +1,4 @@
+#git add
 def formating_from_genTable_to_md(csv_path: str, use_cols: list, templ:str):
     '''
     Usage: extract inforamtion from csv and write to markdown according with the given template;
