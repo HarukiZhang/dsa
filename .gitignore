@@ -8,6 +8,14 @@ Projects/
 Temp/
 Cpp/.vs/
 
+#this folder do not commit
+Cpp/local/
+
 #file
 *.pdf
 *.exe
+
+_cppPrimer_exercise.cpp
+_oj_submit.cpp
+_pta_submit.c
+_verifyAns.cpp
