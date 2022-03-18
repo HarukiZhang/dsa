@@ -1,0 +1,13 @@
+#folder
+.vscode/
+.spyder-py3/
+Data/
+Delete Items/
+Downloads/
+Projects/
+Temp/
+Cpp/.vs/
+
+#file
+*.pdf
+*.exe

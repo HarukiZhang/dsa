@@ -1,0 +1,16 @@
+from turtle import *
+setup(650, 350, 200, 200)
+pu()
+fd(-250)
+pd()
+width(25)
+pencolor('purple')
+right(45)
+for n in range(2,10):
+    circle(pow(-1,n)*40,90)
+circle(pow(-1,n+1)*40,15)
+seth(0)
+fd(60)
+circle(16,180)
+fd(45)
+done()
