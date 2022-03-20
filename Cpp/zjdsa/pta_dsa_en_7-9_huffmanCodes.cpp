@@ -1,25 +1,23 @@
 /*Logic:
-    Referring to code sequence, ie, zero-one-string, we can learn that the relative
-    location of a node to its huffman tree root;
-    According to the defination of huffman tree, however, no char node should be a
-    non-leaf node (branch node whose degree is 2 rather than 0);
-    And if a code sequence itself whole constitutes the prefix of other code, this
-    set of codes is an invalid Huffman code;
+    There are 2 key nature of Huffman tree: 1) minimal WPL; 2) no char node on the
+        branch node; And there's an inference: 3) no node with degree of 1 in a Huffman
+        tree;
+    According to above 2 key nature, we could judge correctness;
 
-    But above mentioned logic only can be a exclusion rule to rule out who is not 
-    Huffamn code, but is not sufficient to judge which one is correct Huffman code;
-
-    The problem is now on : how to compute optimal code length according to given char
-    frequency;
-        Try: mimic construction of a huffman tree, that is to compute WPL value;
-            For even thought there are isomorphic construction of Huffman tree, those
-            that have same nodes' weights would have same WPL value;
+    My logic for computation of WPL:
         The sum of weight of each non-leaf nodes  == WPL;
             For branch nodes contain not only weight info of leaf node, but also
             info of path length; just regard each tree as an scaffold;
+            For even though there are isomorphic construction of Huffman tree, those
+            that have same nodes' weights would have same WPL value;
+        Method: To analogue the process of construction of a huffman tree, and sum its
+            branch node freq;
 
-    Or maybe, the optimal length should not be considered;
-    Only need to judge whether prefix is overlapped;
+    Yue Chen's method for WPL computation:
+        WPL of one tree = freq * its depth;
+        whole tree's WPL = left subtree + right; (recursion)
+            Huffman tree only has node with degree of 2 and leaf node;
+
 */
 #include<cstdio>
 using namespace std;
@@ -89,9 +87,10 @@ struct HfmTNode {
     int lchild, rchild;
 };
 
+/*Using BST logic to store each node of Huffman tree;*/
 class HfmT_BST {
 public:
-    HfmT_BST(HfmTNode* lst)
+    HfmT_BST(HfmTNode* lst)//use static predefined array;
         : size(0), cap(kTreeLen), list(lst)
     {}
     ~HfmT_BST(){}
