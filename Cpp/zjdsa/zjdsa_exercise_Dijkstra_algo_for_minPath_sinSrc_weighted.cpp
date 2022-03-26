@@ -4,53 +4,42 @@
 using namespace std;
 
 constexpr int kInfty = ~(1 << 31);
-constexpr int kMaxLen = 100;
+constexpr int kMaxLen = 128;
 
 struct GNode {
     int into;
     int splLen;
 };
 
-vector<GNode> VGraph[kMaxLen + 10];
+vector<GNode> VGraph[kMaxLen];
 
 int animalN, spellN;
-int dist[kMaxLen + 10][kMaxLen + 10], path[kMaxLen + 10][kMaxLen + 10];
+int dist[kMaxLen][kMaxLen];
 
 class MinHeap {
 public:
     MinHeap(int crtV)
-        : crtVtx   {crtV},
-          list     {new int[capacity]}
+        : crtVtx {crtV}
     {
         list[0] = -1;//lookout;
-        /*directly biuld up;*/
-        for (int i = 1; i <= animalN; ++i)
-            list[i] = i;
-        size = animalN;
-        for (int ptr = size / 2 ; ptr > 0; --ptr)
-            percolate(ptr);
-
     }
-    ~MinHeap(){
-        delete[] list;
-    }
+    ~MinHeap(){}
     bool empty(){ return size == 0; }
     void insert(int v);
     int pop();
-    void adjust(int tar);
 private:
     inline void percolate(int ptr);
     inline bool compare(int a, int b);
     int size = 0;//num of vertex;
-    int capacity = animalN + 10;
+    int capacity = kMaxLen;
     int crtVtx;
-    int *list;
+    int list[kMaxLen];
 };
 
 void Dijkstra(int ptr);
 
 int main(){
-    freopen("E:\\in.txt", "r", stdin);
+    // freopen("E:\\in.txt", "r", stdin);
 
     cin >> animalN >> spellN;
     GNode tmp;
@@ -67,63 +56,61 @@ int main(){
     for (int i = 1; i <= animalN; ++i){//starts from idx 1;
         for (int j = 1; j <= animalN; ++j){
             dist[i][j] = kInfty;
-            path[i][j] = -1;
         }
         for (auto it = VGraph[i].begin(); it != VGraph[i].end(); ++it){
             dist[i][it->into] = it->splLen;
-            path[i][it->into] = i;
         }
     }
 
     for (int i = 1; i <= animalN; ++i){//starts from idx 1;
         Dijkstra(i);
     }
-
-    /*debug*/
-    for (int i = 1; i <= animalN; ++i){
-        for (int j = 1; j <= animalN; ++j){
-            if (dist[i][j] < kInfty) cout << dist[i][j] << "\t";
-            else cout << "Inf\t";
+    
+    int minS=kInfty,tar;
+    for(int i=1;i<=animalN;++i){
+        int maxS=-1;
+        for(int j=1;j<=animalN;++j){
+            if(dist[i][j]==kInfty){
+                cout<<0<<endl; return 0;
+            }
+            if(dist[i][j]>maxS) maxS=dist[i][j];
         }
-        cout << endl;
+        if(maxS<minS){
+            minS=maxS;
+            tar=i;
+        }
     }
-    cout << endl;
-    for (int i = 1; i <= animalN; ++i){
-        for (int j = 1; j <= animalN; ++j)
-            cout << path[i][j] << "\t";
-        cout << endl;
-    }
+    cout<<tar<<" "<<minS << endl;
+    return 0;
 }
 
 void Dijkstra(int ptr){
-    /*biuld min heap*/
     MinHeap minheap { ptr };
-    bool *collected = new bool[animalN + 10]{};
-    /*algorithm*/
-    dist[ptr][ptr] = 0;//self to self == 0;
-    collected[ptr] = true;//collect self;
-    while (!minheap.empty()){
+    bool collected[kMaxLen]{};
+    dist[ptr][ptr] = 0;//self to self is zero;
+    minheap.insert(ptr);
+    collected[ptr]=true;
+    while ( !minheap.empty() ){//every vertex in minheap will be popped out;
         int crtV = minheap.pop();
-        collected[crtV] = true;
-        auto itW  = VGraph[crtV].begin(),
-             ited = VGraph[crtV].end();
+        auto itW=VGraph[crtV].begin(), ited=VGraph[crtV].end();
         for ( ;itW != ited; ++itW ){
-            if ( collected[itW->into] == false ){
-                int tmp = dist[ptr][crtV] + dist[crtV][itW->into];
-                if ( tmp < dist[ptr][itW->into]){
-                    dist[ptr][itW->into] = tmp;
-                    
-                    /*...
-                    how to influence minheap?
-                    ...*/
-                    minheap.adjust(itW->into);//this opt consume time too much!!!
-
-                    path[ptr][itW->into] = crtV;
-                }
+            /*shortening path is independent of collecting vertex;
+                ie, there should be two independent if statement,
+                rahter than nested;*/
+            int tmp = dist[ptr][crtV] + dist[crtV][itW->into];
+            if (tmp < dist[ptr][itW->into]){//core algorithm;
+                dist[ptr][itW->into] = tmp;
+                dist[itW->into][ptr] = tmp;
+            }
+            if (collected[itW->into] == false){
+                minheap.insert(itW->into);
+                /*updating collected[] should be here, for in outer while-loop,
+                it is constrained that all vertex that has been inserted into minheap
+                will be popped out to the collected set;*/
+                collected[itW->into] = true;
             }
         }
     }
-    delete[] collected;
     return;
 }
 
@@ -136,23 +123,12 @@ void MinHeap::insert(int v){
     list[ptr] = v;
     return;
 }
+
 int MinHeap::pop(){
     int ret = list[1];
     list[1] = list[size--];
     percolate(1);
     return ret;
-}
-
-void MinHeap::adjust(int tar){
-    int ptr;
-    for (ptr = 1; ptr <= size; ++ptr)
-        if (list[ptr] == tar) break;
-    while ( compare(tar, list[ptr/2]) ){
-        list[ptr] = list[ptr / 2];
-        ptr /= 2;
-    }
-    list[ptr] = tar;
-    return;
 }
 
 void MinHeap::percolate(int ptr){
