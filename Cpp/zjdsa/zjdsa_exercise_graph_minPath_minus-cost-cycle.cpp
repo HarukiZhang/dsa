@@ -4,6 +4,7 @@
 using namespace std;
 
 constexpr int kInfty = ~(1 << 31);
+constexpr int kMinusInfty = 1 << 31;
 constexpr int kMaxLen = 128;
 
 struct GNode {
@@ -21,7 +22,7 @@ public:
     MinHeap(int crtV)
         : crtVtx {crtV}
     {
-        list[0] = -1;//lookout;
+        list[0] = kMinusInfty;
     }
     ~MinHeap(){}
     bool empty(){ return size == 0; }
@@ -36,10 +37,30 @@ private:
     int list[kMaxLen];
 };
 
+int weightof(int v, int w);
 void Dijkstra(int ptr);
 
+void debugPrint(){
+    for (int i = 1; i <= animalN; ++i)
+        cout << i << "\t";
+    cout << endl;
+    for (int i = 1; i <= animalN; ++i){
+        for (int j = 1; j <= animalN; ++j){
+            if (dist[i][j] == kInfty)
+                cout << "Inf\t";
+            else if (dist[i][j] == kMinusInfty)
+                cout << "-Inf\t";
+            else
+                cout << dist[i][j] << "\t";
+        }
+        cout << endl;
+    }
+    cout << endl;
+    return;
+}
+
 int main(){
-    // freopen("E:\\in.txt", "r", stdin);
+    freopen("E:\\in.txt", "r", stdin);
 
     cin >> animalN >> spellN;
     GNode tmp;
@@ -62,16 +83,19 @@ int main(){
         }
     }
 
-    for (int i = 1; i <= animalN; ++i){//starts from idx 1;
-        Dijkstra(i);
-    }
+    Dijkstra(2);
+
+    // for (int i = 1; i <= animalN; ++i){//starts from idx 1;
+    //     Dijkstra(i);
+    // }
     
     int minS=kInfty,tar;
     for(int i=1;i<=animalN;++i){
         int maxS=-1;
         for(int j=1;j<=animalN;++j){
             if(dist[i][j]==kInfty){
-                cout<<0<<endl; return 0;
+                cout<<0<<endl;
+                goto debug;
             }
             if(dist[i][j]>maxS) maxS=dist[i][j];
         }
@@ -81,17 +105,17 @@ int main(){
         }
     }
     cout<<tar<<" "<<minS << endl;
+
+debug:
+    debugPrint();
+
     return 0;
 }
 
-/*This is not standatd Dijkstra algo, for it says:
-    only when a vertex that has yet been collected AND reduces other vertex's dist,
-    the dist of it should be updated;
-But in this function, two if statement is separated!*/
 void Dijkstra(int ptr){
     MinHeap minheap { ptr };
     bool collected[kMaxLen]{};
-    dist[ptr][ptr] = 0;//self to self is zero;
+    dist[ptr][ptr] = 0;//use -infty to denote self-to-self;
     minheap.insert(ptr);
     collected[ptr]=true;
     while ( !minheap.empty() ){//every vertex in minheap will be popped out;
@@ -101,10 +125,20 @@ void Dijkstra(int ptr){
             /*shortening path is independent of collecting vertex;
                 ie, there should be two independent if statement,
                 rahter than nested;*/
-            int tmp = dist[ptr][crtV] + dist[crtV][itW->into];
-            if (tmp < dist[ptr][itW->into]){//core algorithm;
-                dist[ptr][itW->into] = tmp;
-                dist[itW->into][ptr] = tmp;
+            /*as to those with negative-cost cycle, it requires that:
+                1) do not refer to self-to-self;
+                2) do not modify self-to-self;*/
+            /*as to multi-Dijkstra, it requires that:
+                1) always refer to the current row (defined by param ptr) to avoid
+                    self-circulation;
+                2) only modify the current row of dist matrix;*/
+            if (ptr != crtV && ptr != itW->into){//do not refer to/modify self-to-self;
+                int tmp = dist[ptr][crtV] + weightof(crtV, itW->into);//refer to original;
+                if (tmp < dist[ptr][itW->into]){//core algorithm;
+                    dist[ptr][itW->into] = tmp;
+                    // dist[itW->into][ptr] = tmp;
+                    // debugPrint();
+                }
             }
             if (collected[itW->into] == false){
                 minheap.insert(itW->into);
@@ -118,6 +152,13 @@ void Dijkstra(int ptr){
     return;
 }
 
+int weightof(int v, int w){
+    auto it = VGraph[v].begin(), ited = VGraph[v].end();
+    for (; it != ited; ++it){
+        if (it->into == w) return it->splLen;
+    }
+    return kInfty;
+}
 
 void MinHeap::insert(int v){
     int ptr = ++size;
@@ -150,23 +191,8 @@ void MinHeap::percolate(int ptr){
 }
 
 bool MinHeap::compare(int a, int b){
-    return dist[crtVtx][a] < dist[crtVtx][b];
+    if (a > 0 && b > 0)
+        return dist[crtVtx][a] < dist[crtVtx][b];
+    else
+        return a < b;
 }
-
-
-/*
-0       1       70      61      81      51
-1       0       71      60      80      50
-70      71      0       70      120     80
-61      60      70      0       50      60
-81      80      120     50      0       60
-51      50      80      60      60      0
-
-
-0       1       70      61      81      51
-1       0       71      60      80      50
-70      71      0       70      120     80
-61      60      70      0       50      60
-81      80      120     50      0       60
-51      50      80      60      60      0
-*/
