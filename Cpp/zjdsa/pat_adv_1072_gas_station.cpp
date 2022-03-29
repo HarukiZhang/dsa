@@ -2,11 +2,17 @@
 #include<cstdio>
 #include<vector>
 #include<queue>
+#include<cmath>
 using namespace std;
 
 /*
 not all correct;
 probably: array overflew;
+consider following situation:
+    zero location;
+    only one house, gas location, road;
+    max houseN, gasLocM, roadsK;
+    service Range max and min;
 */
 
 constexpr int kMaxHouse = 1010, kMaxGasLoc = 16, kMaxRoad = 10010,
@@ -14,13 +20,9 @@ constexpr int kMaxHouse = 1010, kMaxGasLoc = 16, kMaxRoad = 10010,
 int64_t __Infinity = 0x7FF0000000000000;
 const double kDBL_Infty = *((double *)&__Infinity);
 
-struct Road {
-    int to, len;
-};
-
 int houseN, gasLocM, roadsK, servRgDs;
 int dist[kMaxGasLoc][kMaxGasLoc + kMaxHouse];
-vector<Road> map[kMaxGasLoc + kMaxHouse];
+int mtxMap[kMaxGasLoc + kMaxHouse][kMaxGasLoc + kMaxHouse];
 
 void Dijkstra(int ptr);
 void record();
@@ -42,38 +44,33 @@ struct Elem {
     }
 };
 
-int weightof(int a, int b){
-    auto it = map[a].begin(), ie = map[a].end();
-    for (; it != ie; ++it)
-        if (it->to == b) return it->len;
-    return kInt_Infty;
-}
-
 void Dijkstra(int ptr){
     /*initialization*/
     priority_queue<Elem> mypque;
-    bool collected[kMaxGasLoc + kMaxGasLoc]{};
+    bool collected[kMaxGasLoc + kMaxHouse]{};//all false;
     int stp = kHSta + houseN;
-    for (int i = 0; i <= stp; ++i) dist[ptr][i] = kInt_Infty;
-    auto it = map[ptr].begin();
-    auto ie = map[ptr].end();
-    for (; it != ie; ++it) dist[ptr][it->to] = it->len;
+
+    for (int i = 1; i <=stp; ++i){
+        dist[ptr][i] = mtxMap[ptr][i];
+    }
+
     /*algorithm*/
     mypque.push( Elem {ptr, 0} );
     collected[ptr] = true;
     dist[ptr][ptr] = 0;
     while ( !mypque.empty() ){
         Elem crtE = mypque.top(); mypque.pop();
-        it = map[crtE.id].begin();
-        ie = map[crtE.id].end();
-        for (; it != ie; ++it){
-            int tmpDist = crtE.dist + weightof(crtE.id, it->to);
-            if (collected[it->to] == false){
-                if (tmpDist < dist[ptr][it->to]){
-                    dist[ptr][it->to] = tmpDist;
+
+        for (int i = 1; i <= stp; ++i){
+            if (crtE.id != i && mtxMap[crtE.id][i] < kInt_Infty){//for each direct edge;
+                if (collected[i] == false){
+                    int tmpDist = crtE.dist + mtxMap[crtE.id][i];
+                    if (tmpDist < dist[ptr][i]){
+                        dist[ptr][i] = tmpDist;
+                    }
+                    mypque.push(Elem {i, dist[ptr][i]});
+                    collected[i] = true;
                 }
-                mypque.push(Elem {it->to, dist[ptr][it->to]});
-                collected[it->to] = true;
             }
         }
     }
@@ -81,9 +78,17 @@ void Dijkstra(int ptr){
 }
 
 void read(){
+
+    int stp = kHSta + houseN;
+    for (int i = 0; i <= stp; ++i)
+        for (int j = 0; j <= stp; ++j){
+            if (i == j) mtxMap[i][i] = 0;
+            else mtxMap[i][j] = kInt_Infty;        
+        }
+
     char inchar;
-    int idcs[2];
-    Road road;
+    int idcs[2], rLen;
+    // Road road;
     for (int i = 0; i < roadsK; ++i){
         for (int k = 0; k < 2; ++k){
             inchar = getchar();
@@ -96,12 +101,11 @@ void read(){
                 scanf("%d ", &idcs[k]);
             }
         }
-        scanf("%d ", &road.len);
+        scanf("%d ", &rLen);
         
-        road.to = idcs[1];
-        map[idcs[0]].push_back(road);
-        road.to = idcs[0];
-        map[idcs[1]].push_back(road);
+        if (mtxMap[idcs[0]][idcs[1]] > rLen){
+            mtxMap[idcs[0]][idcs[1]] = mtxMap[idcs[1]][idcs[0]] = rLen;
+        }
     }
     return;
 }
@@ -120,11 +124,10 @@ double roundnear(double x){
 void record(){
     for (int i = 1; i <= gasLocM; ++i)
         Dijkstra(i);
-
+    
     int stp = kHSta + houseN;
-    double resMax = -1.0, resAver;
+    double resMax = -1.0, resAver = kDBL_Infty;
     int iD;
-    bool noSol = true;
     for (int i = 1; i <= gasLocM; ++i){
 
         double min = kDBL_Infty, sum = 0.0;
@@ -139,7 +142,6 @@ void record(){
         }
 
         if (min > resMax){
-            noSol = false;
             resMax = min;
             resAver = sum / houseN;
             iD = i;
@@ -150,8 +152,9 @@ void record(){
         }
     }
     
-    if (!noSol){
-        printf("G%d\n%.1f %.1f", iD, roundnear(resMax), roundnear(resAver));
+    if (resMax > 0 && resAver > 0){
+        // printf("G%d\n%.1f %.1f", iD, roundnear(resMax), roundnear(resAver));
+        printf("G%d\n%.1f %.1f", iD, resMax, resAver);
     }
     else {
         printf("No Solution");
