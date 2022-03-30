@@ -1,3 +1,10 @@
+/*Attention: this is a multi-Dijkstra for multi-source weighted minPath finding;
+    And this file's time stream contains my naive logic about 
+    
+        adjusting the insde content of minheap;
+    
+    in 2022-03-26 version;
+    */
 /*Use data of pta dsa en 7-25 Harry Potter's Exam*/
 #include<iostream>
 #include<vector>
