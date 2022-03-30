@@ -133,21 +133,21 @@ bool Dijkstra(int src, int dest){
             
             /*note: std dijkstra modifys only the dist of those has yet been collected;
             so, when finding weight of crtE -> it, should find its original value;*/
+            
+            /*updating dist[] and crtTNums[] should be independent of collecting;*/
             tmpDist = crtE.dist + weightof(crtE.cityId, it->to);
-            if (visited[it->to] == false){
-                if (tmpDist < dist[it->to]){
-                    dist[it->to] = tmpDist;
-                }
-                mypque.push( PElem {it->to, dist[it->to]} );
-                visited[it->to] = true;
-            }
-            /*updating dist[] and crtTNums[] should be independent;*/
-            if (tmpDist < dist[it->to]){//send teams no matter visited or not;
+            if (tmpDist < dist[it->to]){
+                dist[it->to] = tmpDist;
                 crtTNums[it->to].clear();
-                sendTeam(crtE.cityId, it->to);
+                sendTeam(crtE.cityId, it->to);//send teams no matter visited or not;
             }
             else if (tmpDist == dist[it->to]){
                 sendTeam(crtE.cityId, it->to);
+            }
+            /*collect only the un-collected;*/
+            if (visited[it->to] == false){
+                mypque.push( PElem {it->to, dist[it->to]} );
+                visited[it->to] = true;
             }
         }
     }
