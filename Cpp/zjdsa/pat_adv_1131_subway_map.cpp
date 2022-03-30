@@ -43,13 +43,13 @@ If the quickest path is not unique, output the one with the minimum number of tr
 #include<stack>
 using namespace std;
 
-constexpr int kMaxLines = 100, kMaxStops = 100, kMaxQuery = 10;
+constexpr int kMaxLines = 128, kMaxStops = 128, kMaxQuery = 16;
 
 int hashList[kMaxStops], hIdx = 1;//convert stopName to idx;
 int lineN, queryK;
 
 struct GNode {
-    int lineId, from, to;
+    int lineId, to;
 };
 vector<GNode> graph[kMaxStops];
 // vector<int> statInfo[kMaxStops];
@@ -60,7 +60,7 @@ void query_BFS(int sta, int dest);
 void debugPrint_graph();
 
 int main(){
-    freopen("E:\\in.txt", "r", stdin);
+    // freopen("E:\\in.txt", "r", stdin);
 
     scanf("%d ", &lineN);
     read();
@@ -75,33 +75,25 @@ int main(){
 
 void read(){
     int statN, crtStat, lastStat, iLast, iCrt;
-    hashList[0] = 0;//data starts from index 1 in graph;
+    hashList[0] = -1;//data starts from index 1 in graph;
     for (int i = 1; i <= lineN; ++i){
         scanf("%d ", &statN);
-        lastStat = 0;//0 for head;
+        lastStat = -1;//-1 for head;
         for (int j = 0; j < statN; ++j){
             scanf("%d ", &crtStat);
             /*before inserting a new station, check whether it already exists;*/
-            for (iCrt = 0; iCrt < kMaxStops; ++iCrt){
-                if (hashList[iCrt] == crtStat){
-                    break;
-                }
-            }
-            if (iCrt == 0){//if not found;
+            for (iCrt = 0; iCrt < kMaxStops && hashList[iCrt] != crtStat; ++iCrt);
+            if (iCrt == kMaxStops){//if not found;
                 //get new index of hashList;
                 hashList[hIdx] = crtStat;
                 iCrt = hIdx;
                 ++hIdx;
             }
-
-            //update station info about line# that pass through;
-            // statInfo[iCrt].push_back(i);
-            //find the index of lastStat, which necessarily exists;
-            for (iLast = 0; hashList[iLast] != lastStat; ++iLast);
-
+            //find the index of lastStat, which necessarily exists (?);
+            for (iLast = 0; iLast < kMaxStops && hashList[iLast] != lastStat; ++iLast);
             if (iLast != 0){
-                graph[iLast].push_back(GNode{i, iLast, iCrt });
-                graph[iCrt ].push_back(GNode{i, iCrt,  iLast});
+                graph[iLast].push_back(GNode{i, iCrt });
+                graph[iCrt ].push_back(GNode{i, iLast});
             }
 
             lastStat = crtStat;
@@ -112,97 +104,89 @@ void read(){
 
 struct Elem {
     GNode gnode;
-    int parent;
+    int parent, transT, dist;
+    bool operator<(const Elem &e) const {
+        if (dist != e.dist)
+            return dist > e.dist;//dist smaller better;
+        else
+            return transT > e.transT;//transT smaller better;
+    }
 };
 
 void query_BFS(int sta, int dest){
+    /*pre-check*/
+    int iSta;
+    for (iSta  = 0; hashList[iSta ] != sta ; ++iSta );//ensured to find;
+    if (sta == dest){
+        //? what if there are more than one lineId;
+        printf(
+            "0\n"
+            "Take Line#%d from %04d to %04d.\n",
+            graph[iSta][0].lineId, sta, dest
+        );
+        return;
+    }
+
     /*initialization*/
-    queue<Elem> myque;//logically vertex in it;
+    priority_queue<Elem> myque;//minheap: firPrior: dist; secPrior: transT;
     vector<Elem> path;
     stack<GNode> mystk;
     bool visited[kMaxStops]{};
-    int iSta, iDest, parCnt = 0, pathCnt = 0;
-    for (iSta  = 0; hashList[iSta ] != sta ; ++iSta );//ensure to find;
+    int parCnt = 0, iDest;
     for (iDest = 0; hashList[iDest] != dest; ++iDest);
+    
     /*BFS algorithm*/
     visited[iSta] = true;
-    myque.push( Elem {GNode{0,0,iSta}, -1} );//vertex is denoted by GNode.to;
+    myque.push( Elem { GNode{ 0, iSta }, -1, 0, 0 } );//vertex is denoted by GNode.to;
     Elem crtE;
     while (!myque.empty()){
-        crtE = myque.front(); myque.pop();
+        crtE = myque.top(); myque.pop();
         path.push_back(crtE);
 
         /*termination condition*/
-        if (crtE.gnode.to == iDest){
-            ++pathCnt;
-            if (myque.front().gnode.to != iDest){
-                break;
-            }
-        }
+        if (crtE.gnode.to == iDest)
+            break;
         
         auto ie = graph[crtE.gnode.to].end();
         for (auto it = graph[crtE.gnode.to].begin(); it != ie; ++it){
             if ( visited[it->to] == false){
                 visited[it->to] = true;
-                myque.push( Elem {*it, parCnt} );
+                int tt = crtE.gnode.lineId != it->lineId ? 1 : 0;
+                myque.push( Elem {*it, parCnt, crtE.transT + tt, crtE.dist + 1} );
             }
         }
         ++parCnt;
     }
+    
+    
     /*post-BFS*/
-    int resDist, crtDist;
-    int crtLineId;
-    int minTransTimes = 99999;//large num as infty;
-    int minTransIdx = -1;
-    int idxCnt = 0;
-    for (Elem e : path){
-        if (e.gnode.to == iDest){
-            int crtTransTimes = 0;
-            crtLineId = e.gnode.lineId;
-            int i = e.parent;
-            crtDist = 0;
-            while (i != -1){
-                if (path[i].gnode.lineId != crtLineId){
-                    crtLineId = path[i].gnode.lineId;
-                    ++crtTransTimes;
-                }
-                i = path[i].parent;
-                ++crtDist;
-            }
-            if (crtTransTimes < minTransTimes){
-                minTransTimes = crtTransTimes;
-                minTransIdx = idxCnt;
-                resDist = crtDist;
-            }
-        }
-        ++idxCnt;
-    }
-    while (minTransIdx != -1){
-        mystk.push(path[minTransIdx].gnode);
-        minTransIdx = path[minTransIdx].parent;
+    int pathIdx = path.size() - 1;
+    printf("%d\n", path[pathIdx].dist);
+
+    while (pathIdx != 0){
+        mystk.push( path[pathIdx].gnode );
+        pathIdx = path[pathIdx].parent;
     }
 
-    int lastStatId;
-    if (!mystk.empty()){
-        printf("%d\n", resDist);
-        crtLineId = mystk.top().lineId;
-        lastStatId = mystk.top().from;
-        printf("Take Line#%d from %04d to ", crtLineId, hashList[lastStatId]);
-    }
+    int lastStatId, crtLineId;
+    crtLineId = mystk.top().lineId;
+    lastStatId = mystk.top().to;
+    printf("Take Line#%d from %04d to ", crtLineId, sta);
+
     while (!mystk.empty()){
         GNode tmpGN = mystk.top();
         mystk.pop();
-        if (tmpGN.lineId != crtLineId){
+        if (tmpGN.lineId != crtLineId){//if transferred;
             crtLineId = tmpGN.lineId;
-            if (!mystk.empty()){
-                printf("%04d.\nTake Line#%d from %04d to ",
-                    hashList[lastStatId], crtLineId, hashList[lastStatId]);
-            }
-            else printf("%04d.\n", hashList[lastStatId]);
+            printf("%04d.\n"
+                "Take Line#%d from %04d to ",
+                hashList[lastStatId],
+                crtLineId, hashList[lastStatId]);
         }
 
-        lastStatId = tmpGN.from;
+        lastStatId = tmpGN.to;
     }
+    printf("%04d.\n", dest);
     return;
 }
 
@@ -211,7 +195,7 @@ void debugPrint_graph(){
         printf("Station %04d:", hashList[i]);
 
         for (GNode gn : graph[i]){
-            printf("(%04d,%d,%04d),", gn.from, gn.lineId, gn.to);
+            printf("(%d,%04d),", gn.lineId, gn.to);
         }
 
         printf("\n");
@@ -232,6 +216,19 @@ Sample Input:
 
 
 Sample Output:
+2
+Take Line#3 from 3011 to 3013.
+10
+Take Line#4 from 6666 to 1306.
+Take Line#3 from 1306 to 2302.
+Take Line#2 from 2302 to 2001.
+6
+Take Line#2 from 2004 to 1204.
+Take Line#1 from 1204 to 1306.
+Take Line#3 from 1306 to 3001.
+*/
+
+/*
 2
 Take Line#3 from 3011 to 3013.
 10
