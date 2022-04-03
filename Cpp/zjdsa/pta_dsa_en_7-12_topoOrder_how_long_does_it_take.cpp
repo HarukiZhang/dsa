@@ -33,7 +33,7 @@ or simply output "Impossible".
 #include<queue>
 using namespace std;
 
-constexpr int kMaxChkPN = 100;
+constexpr int kMaxChkPN = 128;
 
 typedef int CheckPoint;//vertex idx;
 
@@ -60,25 +60,31 @@ int isTopoOrder(){
         if (degrees[i] == 0)
             que.push(i);
     }
-    int vertN = 0, lasting_cnt = 0;
+    int earlyCmpl = 0;//counting earliest completion time;
+    int vertN = 0;//counting the num of vertices collected;
     /*algorithm*/
     while ( !que.empty() ){
         int crt = que.front();
         que.pop();
         ++vertN;
-        for (Activity act : project[crt]){
+        for (Activity act : project[crt]){//for each adjacent vertex;
+            /*updating the newest time consumption and record the longset;*/
             int time = act.lasting + cumulTimes[crt];
-            if (cumulTimes[act.end] < time)
+            if (time > cumulTimes[act.end])
                 cumulTimes[act.end] = time;
 
             --degrees[act.end];
-            if (degrees[act.end] == 0)
+            if (degrees[act.end] == 0){
                 que.push(act.end);
+                /*when multiple ending points, need to select the longest time;*/
+                if (cumulTimes[act.end] > earlyCmpl)
+                    earlyCmpl = cumulTimes[act.end];
+            }
         }
     }
     if ( vertN != chkPN)
         return -1;
-    return cumulTimes[chkPN - 1];
+    return earlyCmpl;
 }
 
 int main(){
@@ -89,8 +95,8 @@ int main(){
     Activity acti;
     for (int i = 0; i < actvN; ++i){
         cin >> cpSta >> acti.end >> acti.lasting;
-        project[cpSta].push_back( acti );
-        in_degree_counter[acti.end].push_back(true);
+        project[cpSta].push_back( acti );//directed edge;
+        in_degree_counter[acti.end].push_back(true);//reversed adjacent list;
     }
     int completion_time = isTopoOrder();
     if ( completion_time != -1 )
