@@ -42,11 +42,11 @@ private:
 
     int size = 0;
     TreePtr entry = 0;
-    TNode list[kMaxLen];
+    TNode list[kMaxLen];//static-linked-list storage;
 };
 
 int main(){
-    // freopen("E:\\in.txt", "r", stdin);
+    freopen("E:\\in.txt", "r", stdin);
 
     int N;
     cin >> N;
@@ -56,7 +56,7 @@ int main(){
         cin >> tmp;
         avlTree.insert(tmp);//need initialize height and child ptr;
     }
-    cout << avlTree.top();
+    cout << avlTree.top() << endl;
     return 0;
 }
 
@@ -75,60 +75,45 @@ Sample Output 2:
 
 void AVLTree::insert(DataType x){
     if (size == 0){
-        _insert(-1, x);
-        return;
+        list[entry].data = x;
+        list[entry].height = 0;
+        ++size;
     }
-    else if (x < list[entry].data)
-        list[entry].lchild = _insert(list[entry].lchild, x);
-    else
-        list[entry].rchild = _insert(list[entry].rchild, x);
-    if ( getFBlc(entry) > 1){
-        if (x < list[entry].data){
-            if (x < list[list[entry].lchild].data) entry = rotate_left(entry);
-            else entry = rotate_left_right(entry);
-        }
-        else {
-            if (x >= list[list[entry].rchild].data) entry = rotate_right(entry);
-            else entry = rotate_right_left(entry);
-        }
-    }
-    //update height should be after rotating;
-    list[entry].height = getHeight(entry);
+    else entry = _insert(entry, x);
     return;
 }
 
 TreePtr AVLTree::_insert(TreePtr ptr, DataType x){
-    // if (ptr >= 0){
-    if (ptr < 0){
-        TNode &crt = list[size++];
-        crt.data = x;
-        crt.height = 0;
-        return size - 1;
+    /*real insertion*/
+    if (ptr == -1){
+        list[size].data = x;
+        list[size].height = 0;
+        return size++;//duplicate value should not increse size;
     }
-    int next = -1;
+    /*find parent-child relationship*/
     if (x < list[ptr].data){
-        next = list[ptr].lchild;
-        list[ptr].lchild = _insert(next, x);
+        list[ptr].lchild = _insert(list[ptr].lchild, x);
     }
-    else {
-        next = list[ptr].rchild;
-        list[ptr].rchild = _insert(next, x);
+    else if (x > list[ptr].data){
+        list[ptr].rchild = _insert(list[ptr].rchild, x);
+    }
+    else {//deal with duplicate value;
+        return ptr;//do not insert duplicate;
     }
     /*check factor-of-Balance and rotate*/
-    int nPtr = ptr;
+    TreePtr nPtr = ptr;
     if ( getFBlc(ptr) > 1){
         if (x < list[ptr].data){
-            if (x < list[next].data) nPtr = rotate_left(ptr);
+            if (x < list[list[ptr].lchild].data) nPtr = rotate_left(ptr);
             else nPtr = rotate_left_right(ptr);
         }
         else {
-            if (x >= list[next].data) nPtr = rotate_right(ptr);
+            if (x >= list[list[ptr].rchild].data) nPtr = rotate_right(ptr);
             else nPtr = rotate_right_left(ptr);
         }
     }
-    //update height should be after rotating;
-    list[nPtr].height = getHeight(nPtr);
-    // }
+    else //updating height is needed only when not rotating;
+        list[nPtr].height = getHeight(nPtr);
     return nPtr;
 }
 
