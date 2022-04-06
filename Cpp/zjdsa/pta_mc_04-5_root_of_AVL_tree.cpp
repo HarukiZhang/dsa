@@ -46,7 +46,7 @@ private:
 };
 
 int main(){
-    freopen("E:\\in.txt", "r", stdin);
+    // freopen("E:\\in.txt", "r", stdin);
 
     int N;
     cin >> N;
@@ -71,9 +71,14 @@ Sample Input 2:
 88 70 61 96 120 90 65
 Sample Output 2:
 88
+
+Duplicate value test:
+5
+88 70 70 61 61
 */
 
 void AVLTree::insert(DataType x){
+    /*The first insertion is unique: no data in node can be compared;*/
     if (size == 0){
         list[entry].data = x;
         list[entry].height = 0;
@@ -84,11 +89,11 @@ void AVLTree::insert(DataType x){
 }
 
 TreePtr AVLTree::_insert(TreePtr ptr, DataType x){
-    /*real insertion*/
+    /*real insertion: insert into rear;*/
     if (ptr == -1){
         list[size].data = x;
         list[size].height = 0;
-        return size++;//duplicate value should not increse size;
+        return size++;//only increse size here, avoiding duplicate increment mistake;
     }
     /*find parent-child relationship*/
     if (x < list[ptr].data){
