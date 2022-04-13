@@ -16,26 +16,29 @@
 #include<string>
 using namespace std;
 
-typedef int hash_t;
+typedef int hash_t;//differentiate indices and hash value;
 constexpr int kMaxSize = 1 << 19;//use a 2**i number;
-constexpr int kMask = kMaxSize - 1;
+constexpr int kMask = kMaxSize - 1;//which is an all-one-string;
 int recordsN;
 
 struct Elem {
     string phoneNum;
-    int callT = -1;
+    int callT = -1;//record calling times of the phone number;
 };
-int indices[kMaxSize];
-vector<Elem> entries;
+int indices[kMaxSize];//the sparce table storing indices to entries;
+                      //the index of arr indices is hash value;
+vector<Elem> entries; //specific entry of phone number and calling times;
 
 hash_t hashFunc(string &ph){
     int i = 6, base = 10000;//max == 99999;
     hash_t res = 0;
+    //convert char str into int number;
+    //count last 5 digits of phone number into play;
     for (; i < ph.length(); ++i){
         res += (ph[i] - '0') * base;
         base /= 10;
     }
-    res &= kMask;
+    res &= kMask;//modulo using masking;
     return res;
 }
 
@@ -43,10 +46,12 @@ hash_t hashFunc(string &ph){
 inline hash_t probe(hash_t hashC, string &ph){
     hash_t nHash = hashC;
     do {
-        if (indices[nHash] != -1){
+        if (indices[nHash] != -1){//if occupied;
+            //if phoneNum eq, just increase callT;
             if (entries[indices[nHash]].phoneNum == ph){
                 ++entries[indices[nHash]].callT;
             }
+            //else; if phoneNum neq, probe another place;
         }
         else return nHash;
         nHash = (nHash * 5 + 1) & kMask;//collision resolution;
@@ -55,8 +60,9 @@ inline hash_t probe(hash_t hashC, string &ph){
 }
 
 void insert(string &ph){//return idx;
-    hash_t hashCode = probe(hashFunc(ph), ph);
-    if (hashCode != -1){
+    hash_t hashCode = probe(hashFunc(ph), ph);//obtain a valid hash value;
+    //if ph has been inserted, callT increased within probe();
+    if (hashCode != -1){//if ph has yet been inserted;
         entries.push_back(Elem{ph, 1});
         indices[hashCode] = entries.size() - 1;
     }
@@ -66,7 +72,7 @@ void insert(string &ph){//return idx;
 int main(){
     // freopen("E:\\in.txt", "r", stdin);
     ios::sync_with_stdio(false);
-
+    //initialization;
     for (int i = 0; i < kMaxSize; ++i)
         indices[i] = -1;
 
@@ -78,6 +84,7 @@ int main(){
         insert(ph2);
     }
 
+    //search for max calling time;
     int maxCT = 0;
     string maxPH;
     int resNum = -1;
