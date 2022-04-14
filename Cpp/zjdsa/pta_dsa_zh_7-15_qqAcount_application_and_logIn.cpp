@@ -44,7 +44,7 @@ using namespace std;
 
 constexpr size_t _FNV_offset_basis = 14695981039346656037ULL;
 constexpr size_t _FNV_prime        = 1099511628211ULL;
-constexpr int kMaxSize = 1 << 17, kMask = kMaxSize - 1;
+constexpr int kMaxSize = 1 << 18, kMask = kMaxSize - 1;
 typedef unsigned long long hash_t;
 typedef int indx_t;
 struct Entry {
@@ -55,16 +55,25 @@ indx_t indices[kMaxSize];
 vector<Entry> entries;
 int lineN;
 
-hash_t str_hash(const string &str){
-    const unsigned char * const _First = 
-        reinterpret_cast<const unsigned char*>(str.c_str());
+hash_t bitwise_hash(const unsigned char * const _First, const size_t _Count){
     hash_t _Val = _FNV_offset_basis;
-    size_t _Count = str.length();
     for (size_t _Idx = 0; _Idx < _Count; ++_Idx) {
         _Val ^= static_cast<size_t>(_First[_Idx]);
         _Val *= _FNV_prime;
     }
     return _Val;
+}
+
+hash_t str_hash(const string &str){
+    return bitwise_hash(
+        reinterpret_cast<const unsigned char *>(str.c_str()), str.length()
+    );
+}
+
+hash_t int_hash(unsigned long long ull){
+    return bitwise_hash(
+        &reinterpret_cast<const unsigned char &>(ull), sizeof(unsigned long long)
+    );
 }
 
 indx_t probe(const Entry &ent){
@@ -88,7 +97,7 @@ void insert(const Entry &ent){
 
 indx_t find(hash_t accn){
     indx_t idx = accn & kMask;
-    while (indices[idx] != -1){
+    while (indices[idx] != -1){//judge whether has entry;
         if (entries[indices[idx]].accn_hash == accn)
             return idx;
         idx = (idx * 5 + 1) & kMask;
@@ -97,8 +106,8 @@ indx_t find(hash_t accn){
 }
 
 void apply(hash_t accn, const string &pswd){
-    Entry tmp_ent {accn, str_hash(pswd)};
-    indx_t idx = find(accn);
+    Entry tmp_ent {int_hash(accn), str_hash(pswd)};
+    indx_t idx = find(tmp_ent.accn_hash);
     if (idx != -1)
         cout << "ERROR: Exist" << endl;
     else {
@@ -109,8 +118,8 @@ void apply(hash_t accn, const string &pswd){
 }
 
 void login(hash_t accn, const string &pswd){
-    Entry tmp_ent {accn, str_hash(pswd)};
-    indx_t idx = find(accn);
+    Entry tmp_ent {int_hash(accn), str_hash(pswd)};
+    indx_t idx = find(tmp_ent.accn_hash);
     if (idx != -1){
         if (entries[indices[idx]].pswd_hash != tmp_ent.pswd_hash)
             cout << "ERROR: Wrong PW" << endl;
@@ -130,8 +139,6 @@ int main(){
     cin >> lineN >> ws;
 
     memset(indices, -1, kMaxSize * sizeof(indx_t));
-    // for (int i = 0; i < kMaxSize; ++i)
-    //     indices[i] = -1;
     
     for (int i = 0; i < lineN; ++i){
         cin >> cmd >> accnin >> ws >> pswdin >> ws;
