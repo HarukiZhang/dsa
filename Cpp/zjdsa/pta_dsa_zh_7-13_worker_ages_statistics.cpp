@@ -3,9 +3,11 @@
 using namespace std;
 
 constexpr int kMaxSize = 100010;
+constexpr int kRadix = 51;//ages from 0 to 50;
 
 int N;
 int list[kMaxSize];
+int bucket[kRadix]{};
 
 void read();
 void output();
@@ -14,6 +16,7 @@ inline void swap(int &a, int &b);
 void insertion_sort(int arr[], int size);
 void heap_sort(int arr[], int size);
 void quick_sort(int arr[], int size);
+void bucket_sort(int arr[], int size);
 
 int main(){
     // freopen("E:\\in.txt", "r", stdin);
@@ -23,10 +26,22 @@ int main(){
         list[i] = -1;
     read();
     //sort ........
-    quick_sort(list, N);
+    // quick_sort(list, N);
+    bucket_sort(list, N);
     // insertion_sort(list, N);
-    output();
+    // output();
     return 0;
+}
+
+void bucket_sort(int arr[], int size){
+    //sorting;
+    for (int i = 0; i < size; ++i)
+        ++bucket[arr[i]];
+    //output;
+    for (int i = 0; i < kRadix; ++i)
+        if (bucket[i] != 0)
+            cout << i << ':' << bucket[i] << endl;
+    return;
 }
 
 void quick_sort(int arr[], int size){
