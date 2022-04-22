@@ -11,12 +11,15 @@ Output Specification:
 For each test case, print the root of the resulting AVL tree in one line.
 */
 #include<iostream>
+#include<queue>
 using namespace std;
 
 constexpr int kMaxNum = 20, kMaxLen = 32;
 
 typedef int DataType;
 typedef int TreePtr;
+
+constexpr TreePtr NOWHERE = -1;
 
 class TNode {
 friend class AVLTree;
@@ -31,6 +34,7 @@ public:
     void insert(DataType x);/*The logic of insert() can be optimized;*/
     DataType top();
     void deleteValue(DataType x);
+    void traversal();
 private:
     TreePtr _deleteV(TreePtr ptr, DataType x);
     TreePtr _insert(TreePtr ptr, DataType x);
@@ -44,7 +48,7 @@ private:
     TreePtr rotate_left_right(TreePtr ptr);
     TreePtr rotate_right_left(TreePtr ptr);
     int getHeight(TreePtr ptr);
-    int getFBlc(TreePtr ptr);
+    int getFBlc(TreePtr ptr);//return value contains direction;
 
     int listSize = 0;
     TreePtr entry = 0;
@@ -54,15 +58,32 @@ private:
 int main(){
     // freopen("E:\\in.txt", "r", stdin);
 
-    int N;
-    cin >> N;
-    AVLTree avlTree;
-    int tmp;
-    for (int i = 0; i < N; ++i){
-        cin >> tmp;
-        avlTree.insert(tmp);//need initialize height and child ptr;
-    }
-    cout << avlTree.top() << endl;
+    AVLTree T;
+
+    T.insert(6);
+    T.insert(2);
+    T.insert(15);
+    T.insert(1);
+    T.insert(4);
+    T.insert(8);
+    T.insert(30);
+    T.insert(3);
+    T.insert(5);
+    T.insert(7);
+    T.insert(10);
+    T.insert(20);
+    T.insert(13);
+    T.traversal();
+
+
+
+    T.deleteValue(3);
+    T.deleteValue(5);
+    T.traversal();
+
+    T.deleteValue(7);
+    T.traversal();
+
     return 0;
 }
 
@@ -89,7 +110,7 @@ void AVLTree::deleteValue(DataType x){
 }
 
 TreePtr AVLTree::_deleteV(TreePtr ptr, DataType x){
-    if (list[ptr].height = -1)//if empty;
+    if (list[ptr].height == -1)//if empty;
         return ptr;
     if (x < list[ptr].data)
         list[ptr].lchild = _deleteV(list[ptr].lchild, x);
@@ -99,11 +120,48 @@ TreePtr AVLTree::_deleteV(TreePtr ptr, DataType x){
         if (list[ptr].height == 0){//degree == 0;
             list[ptr].height = list[ptr].lchild = list[ptr].rchild = -1;
         }
-        else {
+        else {//hereafter, at-least one child;
             /*compare which way is higher (deeper),
             substitute with the deeper side's max or min;*/
+            int fB = getFBlc(ptr);
+            if (fB > 0){
+                TreePtr iLfMax = _findMax(list[ptr].lchild);
+                list[ptr].data = list[iLfMax].data;//substitution;
+                list[ptr].lchild = _deleteV(list[ptr].lchild, list[ptr].data);
+            }
+            else {//includes : leftHeight == rightHeight;
+                //when equals, take prior to delete from right side;
+                TreePtr iRtMin = _findMin(list[ptr].rchild);
+                list[ptr].data = list[iRtMin].data;
+                list[ptr].rchild = _deleteV(list[ptr].rchild, list[ptr].data);
+            }
         }
     }
+    //compute factor of Balance;
+    //when crt node is a watcher, find "breaker" and rotate relevent nodes;
+    TreePtr nPtr = ptr;
+    int lfH, rtH;
+    if (list[ptr].data != x){//if to-delete is not crt data;
+        //fB < 0 : right child is deeper than left;
+        //fB > 0 : left is deeper;
+        int fB = getFBlc(ptr);
+        if (fB > 1){//goto left child, who is deeper;
+            if ( getFBlc(list[ptr].lchild) > 0 )
+                nPtr = rotate_left(ptr);
+            else nPtr = rotate_left_right(ptr);
+            //what if equal? dLR or sL?
+        }
+        else if (fB < -1){//goto right chlid;
+            if ( getFBlc(list[ptr].rchild) < 0 )
+                nPtr = rotate_right(ptr);
+            else nPtr = rotate_right_left(ptr);
+            //what if equal? dRL or sR?
+        }
+        else
+            list[ptr].height = getHeight(ptr);
+    }
+    else nPtr = NOWHERE;//if crt data is deleted, return NOWHERE;
+    return nPtr;
 }
 
 TreePtr AVLTree::_find(TreePtr ptr, DataType x){
@@ -156,7 +214,9 @@ TreePtr AVLTree::_insert(TreePtr ptr, DataType x){
     }
     /*check factor-of-Balance and rotate*/
     TreePtr nPtr = ptr;
-    if ( getFBlc(ptr) > 1){
+    int fB = getFBlc(ptr);
+    fB *= fB;//get abs of fB;
+    if ( fB > 1 ){
         if (x < list[ptr].data){
             if (x < list[list[ptr].lchild].data) nPtr = rotate_left(ptr);
             else nPtr = rotate_left_right(ptr);
@@ -203,6 +263,20 @@ DataType AVLTree::top(){
     return list[entry].data;
 }
 
+void AVLTree::traversal(){
+    queue<TreePtr> que;
+    que.push(entry);
+    while ( !que.empty() ){
+        TreePtr crtP = que.front();
+        que.pop();
+        cout << list[crtP].data << ' ';
+        if (list[crtP].lchild != -1) que.push(list[crtP].lchild);
+        if (list[crtP].rchild != -1) que.push(list[crtP].rchild);
+    }
+    cout << endl;
+    return;
+}
+
 inline int max(int a, int b){
     return a > b ? a : b;
 }
@@ -217,6 +291,6 @@ int AVLTree::getFBlc(TreePtr ptr){
     int left = list[ptr].lchild != -1 ? list[list[ptr].lchild].height : -1;
     int right = list[ptr].rchild != -1 ? list[list[ptr].rchild].height : -1;
     int res = left - right;
-    if (res < 0) res = -res;
+    // if (res < 0) res = -res;
     return res;
 }
