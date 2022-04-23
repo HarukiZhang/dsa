@@ -1,15 +1,3 @@
-/*
-given a sequence of insertions, you are supposed to tell the root of 
-the resulting AVL tree.
-Input Specification:
-Each input file contains one test case. For each case, the first line contains 
-a positive integer N (≤20) which is the total number of keys to be inserted. 
-Then N distinct integer keys are given in the next line. All the numbers in 
-a line are separated by a space.
-
-Output Specification:
-For each test case, print the root of the resulting AVL tree in one line.
-*/
 #include<iostream>
 #include<queue>
 using namespace std;
@@ -56,8 +44,7 @@ private:
 };
 
 int main(){
-    // freopen("E:\\in.txt", "r", stdin);
-
+    
     AVLTree T;
 
     T.insert(6);
@@ -87,23 +74,6 @@ int main(){
     return 0;
 }
 
-/*
-Sample Input 1:
-5
-88 70 61 96 120
-Sample Output 1:
-70
-Sample Input 2:
-7
-88 70 61 96 120 90 65
-Sample Output 2:
-88
-
-Duplicate value test:
-5
-88 70 70 61 61
-*/
-
 void AVLTree::deleteValue(DataType x){
     entry = _deleteV(entry, x);
     return;
@@ -112,6 +82,7 @@ void AVLTree::deleteValue(DataType x){
 TreePtr AVLTree::_deleteV(TreePtr ptr, DataType x){
     if (list[ptr].height == -1)//if empty;
         return ptr;
+    //search the place of target to delete;
     if (x < list[ptr].data)
         list[ptr].lchild = _deleteV(list[ptr].lchild, x);
     else if (x > list[ptr].data)
@@ -122,7 +93,10 @@ TreePtr AVLTree::_deleteV(TreePtr ptr, DataType x){
         }
         else {//hereafter, at-least one child;
             /*compare which way is higher (deeper),
-            substitute with the deeper side's max or min;*/
+            substitute crt data with the deeper side's max or min;*/
+        
+            //fB < 0 : right child is deeper than left;
+            //fB > 0 : left is deeper;
             int fB = getFBlc(ptr);
             if (fB > 0){
                 TreePtr iLfMax = _findMax(list[ptr].lchild);
@@ -140,22 +114,25 @@ TreePtr AVLTree::_deleteV(TreePtr ptr, DataType x){
     //compute factor of Balance;
     //when crt node is a watcher, find "breaker" and rotate relevent nodes;
     TreePtr nPtr = ptr;
-    int lfH, rtH;
     if (list[ptr].data != x){//if to-delete is not crt data;
-        //fB < 0 : right child is deeper than left;
-        //fB > 0 : left is deeper;
         int fB = getFBlc(ptr);
+        //when abs(fB) is bigger than 1, we define it as un-balanced;
         if (fB > 1){//goto left child, who is deeper;
-            if ( getFBlc(list[ptr].lchild) > 0 )
+            if ( getFBlc(list[ptr].lchild) >= 0 )//if left side is deeper; or equal;
                 nPtr = rotate_left(ptr);
             else nPtr = rotate_left_right(ptr);
-            //what if equal? dLR or sL?
+            /*if left height equals to right height,
+            Logically, it is no different to perform 
+                single-left-rotation or double-left-right-rot;
+            Practically, however, perform single rotation is simpler and
+                changes the structure less;
+            */
         }
         else if (fB < -1){//goto right chlid;
-            if ( getFBlc(list[ptr].rchild) < 0 )
+            if ( getFBlc(list[ptr].rchild) <= 0 )//if right side is deeper;
                 nPtr = rotate_right(ptr);
             else nPtr = rotate_right_left(ptr);
-            //what if equal? dRL or sR?
+            //when equal, perform the simpler rotation, ie, single-rot;
         }
         else
             list[ptr].height = getHeight(ptr);
@@ -215,7 +192,7 @@ TreePtr AVLTree::_insert(TreePtr ptr, DataType x){
     /*check factor-of-Balance and rotate*/
     TreePtr nPtr = ptr;
     int fB = getFBlc(ptr);
-    fB *= fB;//get abs of fB;
+    fB *= fB;//used as abs(fB);
     if ( fB > 1 ){
         if (x < list[ptr].data){
             if (x < list[list[ptr].lchild].data) nPtr = rotate_left(ptr);
