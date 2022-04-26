@@ -25,13 +25,15 @@ public:
 private:
     void _adjust(TreePtr ptr);
     bool _identify(TreePtr ch, TreePtr pr);//return whether ch is pr's left child;
-    TreePtr _find(TreePtr ptr, DataType x);
+    TreePtr _find(TreePtr ptr, DataType x);//only used within, with no adjusting;
     TreePtr _findMax(TreePtr ptr);
     TreePtr _findMin(TreePtr ptr);
     void rot_left(TreePtr ptr);
     void rot_right(TreePtr ptr);
 
     void rotate(TreePtr ptr);//testing : uncorrect;
+    //target: self-judge the direction of rotation within rotate();
+    //however, no need to do that; it's difficult to program;
 
     int lsize = 0;
     TreePtr root = 0;
@@ -39,44 +41,64 @@ private:
 };
 
 int main(){
+    freopen("E:\\in.txt", "r", stdin);
+    int N, M;
     SplayTree ST;
-    ST.insert(50);
-    ST.insert(100);
-    ST.insert(1);
-
-    ST.access(100);
+    cin >> N >> M;
+    int tmp;
+    for (int i = 0; i < N; ++i){
+        cin >> tmp;
+        ST.insert(tmp);
+    }
     ST.traversal();
-
-    ST.insert(25);
-    ST.insert(35);
-    ST.insert(40);
-    ST.insert(30);
-
-    ST.access(87);
-    ST.access(40);
-
-    ST.traversal();
-
-    ST.erase(40);
-    ST.traversal();
+    cout << endl;
+    for (int i = 0; i < M; ++i){
+        cin >> tmp;
+        ST.erase(tmp);
+        ST.traversal();
+    }
     
     return 0;
 }
 
+/*Test input:
+15 5
+1 12 7 4 11 10 2 13 3 5 6 14 8 9 15
+9 4 5 16 1
+*/
+
+/*Test output:
+15 9 NC 8 14 7 NC 10 NC 6 NC NC 13 5 NC 12 NC 3 NC 11 NC 2 4 1 NC
+
+        3 
+    2         8 
+1    NC     6     15 
+            4   7  14   NC
+        NC  5    10  NC 
+               NC  13 
+                12  NC
+             11  NC 
+5 3 6 2 NC NC 8 1 NC 7 15 14 NC 10 NC NC 13 12 NC 11 NC
+1 NC 2 NC 3 NC 6 NC 8 7 15 14 NC 10 NC NC 13 12 NC 11 NC 
+Not Found When Erasing!
+1 NC 2 NC 3 NC 6 NC 8 7 15 14 NC 10 NC NC 13 12 NC 11 NC
+8 3 15 2 7 14 NC 6 NC 10 NC NC 13 12 NC 11 NC
+*/
+
 void SplayTree::_adjust(TreePtr ptr){
-    //do not need to modify root within _adjust();
+    //attention: do not need to modify root within _adjust();
     TreePtr parent = list[ptr].parent, grandma = list[parent].parent;
+    if (parent == kNoFamily) return;//root should not be adjusted;
     if (parent == root){
-        bool isLeft = _identify(ptr, parent);
-        if (isLeft)
-            rot_left(parent);
+        if ( _identify(ptr, parent) )//if ptr is the left child of parent;
+            rot_left(parent);//single left rotation;
         else rot_right(parent);
     }
-    else {
+    else {//neither ptr nor parent is root;
         bool isLeft_elder = _identify(parent, grandma);
         bool isLeft_senior = _identify(ptr, parent);
         if (isLeft_elder){
-            if (isLeft_senior){//left left
+            if (isLeft_senior){//left left double rotation;
                 rot_left(grandma);
                 rot_left(parent);
             }
@@ -139,13 +161,15 @@ void SplayTree::rot_right(TreePtr ptr){
     return;
 }
 
+//pending;
 void SplayTree::rotate(TreePtr ptr){
     TreePtr parent = list[ptr].parent,
         grandma = list[parent].parent,
         burden;
     bool isLf_up = _identify(parent, grandma);
     bool isLf_dw = _identify(ptr, parent);
-
+    //crt probelm: the order of LL-rot is different from LR-rot;
+    //individual judge for that is needed;
     if (isLf_dw){
         burden = list[ptr].rchild;
         list[ptr].rchild = parent;
@@ -169,16 +193,17 @@ void SplayTree::rotate(TreePtr ptr){
 }
 
 bool SplayTree::_identify(TreePtr ch, TreePtr pr){
+    //before calling this, ch should be ensured to be child of pr;
     return list[pr].lchild == ch;
 }
 
 void SplayTree::insert(DataType x){
-    if (lsize == 0){
+    if (lsize == 0){//initial;
         list[0].data = x;
         ++lsize;
         return;
     }
-
+    //find the place;
     TreePtr p = root, last = p;
     bool isLeftChild = true;
     while (p != kNoFamily){
@@ -193,7 +218,7 @@ void SplayTree::insert(DataType x){
         }
         else last = kNoFamily;//if x == data, do not insert it;
     }
-
+    //insertion;
     if (last != kNoFamily){
         list[lsize].data = x;
         list[lsize].parent = last;
@@ -202,7 +227,7 @@ void SplayTree::insert(DataType x){
         else list[last].rchild = lsize;
 
         _adjust(lsize);
-        root = lsize;
+        root = lsize;//after adjusting, root == lsize;
 
         ++lsize;//increment is most final step;
     }
@@ -214,6 +239,7 @@ TreePtr SplayTree::access(DataType x){
         cout << "empty" << endl;
         return kNoFamily;
     }
+    //search;
     TreePtr p = root, last = p;
     while (p != kNoFamily){
         last = p;
@@ -223,6 +249,7 @@ TreePtr SplayTree::access(DataType x){
             p = list[p].rchild;
         else break;
     }
+    //adjust;
     if (list[last].data == x){
         _adjust(last);
         return root = last;
@@ -232,24 +259,26 @@ TreePtr SplayTree::access(DataType x){
 }
 
 void SplayTree::erase(DataType x){
-    TreePtr p = root, last = p;
+    //search;
+    TreePtr p = root;
     while (p != kNoFamily){
-        last = p;
         if (x < list[p].data)
             p = list[p].lchild;
         else if (x > list[p].data)
             p = list[p].rchild;
         else break;
     }
+    //erasing;
     if (p == kNoFamily){
         cout << "Not Found When Erasing!" << endl;
         return;
     }
-    while (p != kNoFamily){
+    //loop to search the substitution;
+    while (p != kNoFamily){//if p is found;
+        //give prior to findMax() below left child;
         if (list[p].lchild != kNoFamily){//at-least has left child;
             TreePtr child = _findMax(list[p].lchild);
             list[p].data = list[child].data;//p.data has been thus erased;
-            last = p;
             p = child;
         }
         else if (list[p].rchild == kNoFamily){//do not has any child;
@@ -257,15 +286,17 @@ void SplayTree::erase(DataType x){
             if ( _identify(p, parent) )
                 list[parent].lchild = kNoFamily;
             else list[parent].rchild = kNoFamily;
-            list[p].parent = list[p].lchild = list[p].rchild = kNoFamily;
+            list[p].parent = list[p].lchild = list[p].rchild = kNoFamily;//cleaning;
+            
             _adjust(parent);
-            root = parent;
+            root = parent;//after adjusting, this is ensured;
+
             break;
         }
         else {//only has right child;
+            //only when no left child, findMin below right;
             TreePtr child = _findMin(list[p].rchild);
             list[p].data = list[child].data;
-            last = p;
             p = child;
         }
     }
@@ -287,15 +318,22 @@ void SplayTree::traversal(){
     queue<TreePtr> que;
     que.push(root);
     while (!que.empty()){
-        //take;
         TreePtr p = que.front(); que.pop();
-        //output:
-        cout << list[p].data << ' ';
-        //push;
-        if (list[p].lchild != kNoFamily)
-            que.push(list[p].lchild);
-        if (list[p].rchild != kNoFamily)
-            que.push(list[p].rchild);
+
+        if (p != kNoFamily){
+            cout << list[p].data << ' ';
+
+            if (list[p].lchild == kNoFamily && list[p].rchild == kNoFamily){
+                //if p is a leaf node, what below it should be ignored;
+                continue;
+            }
+            else {//as long as there's one child, push both pointer;
+                que.push(list[p].lchild);
+                que.push(list[p].rchild);
+            }
+
+        }
+        else cout << "NC ";
     }
     cout << endl;
     return;
