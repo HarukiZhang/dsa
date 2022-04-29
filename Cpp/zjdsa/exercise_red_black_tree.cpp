@@ -90,9 +90,12 @@ void Tree::_erase_node(TreePtr z){
     TreePtr y = z;
     //y_ori_color: used to judge whether the rb-property is spoiled by transplantation;
     Color y_ori_color = y->color;
+    //note: no need to check whether z == root;
+    //even if z is root, just replace it, and later we will fix it up;
     if (z->lchild == Nil){//no matter whether left child exists;
         x = z->rchild;
         _transplant(z, z->rchild);//substitute z with its child;
+        //note: z.right do not inherit z's color;
     }
     else if (z->rchild == Nil){//left child exists;
         x = z->lchild;
@@ -114,7 +117,8 @@ void Tree::_erase_node(TreePtr z){
         _transplant(z, y);
         y->lchild = z->lchild;
         y->lchild->parent = y;
-        y->color = z->color;//set color of y as z;
+        //note: this is the only case that lets successor inherit color of z;
+        y->color = z->color;//set color of y as z's;
     }
     if (y_ori_color == Color::Black)
         _erase_FixUp(x);
@@ -123,35 +127,43 @@ void Tree::_erase_node(TreePtr z){
 }
 
 void Tree::_erase_FixUp(TreePtr x){
+    //before calling this func, x was ensured to be Black;
     while (x != root && x->color == Color::Black){
         if (x == x->parent->lchild){
             TreePtr w = x->parent->rchild;//the brother of x;
             /*case 1*/
             if (w->color == Color::Red){
+                //change color of both brother and father;
                 w->color = Color::Black;
                 x->parent->color = Color::Red;
-                _left_rotate(x->parent);
-                w = x->parent->rchild;
+                _left_rotate(x->parent);//rotate towards me;
+                w = x->parent->rchild;//find new brother;
+                //case 1 ends, then it always goto one of case 2, 3, or 4;
             }
             /*case 2*/
             if (w->lchild->color == Color::Black && w->rchild->color == Color::Black){
-                w->color = Color::Red;
-                x = x->parent;
+                w->color = Color::Red;//when Black was washed out, it left Red;
+                x = x->parent;//shift-up the pointer x, which will set x.p double-Black;
+                //and thus, original x will become singly-Black;
+                //case 2 ends, it is the only case that may lead to loop continue;
             }
             else {
                 /*case 3*/
                 if (w->rchild->color == Color::Black){
+                    //change color of both brother and niece-near;
                     w->lchild->color = Color::Black;
                     w->color = Color::Red;
-                    _right_rotate(w);
-                    w = x->parent->rchild;
+                    _right_rotate(w);//rotate towards me-opposite;
+                    w = x->parent->rchild;//find new brother;
+                    //case 3 ends, then it always goto case 4;
                 }
                 /*case 4*/
-                w->color = x->parent->color;
-                x->parent->color = Color::Black;
-                w->rchild->color = Color::Black;
-                _left_rotate(x->parent);
+                w->color = x->parent->color;//brother inherits color of father;
+                x->parent->color = Color::Black;//father changes color;
+                w->rchild->color = Color::Black;//neice-far changes color;
+                _left_rotate(x->parent);//rotate towards me;
                 x = root;
+                //case 4 ends; x was set to root, loop will thus end;
             }
         }
         else {
@@ -299,4 +311,10 @@ void Tree::traversal(){
     }
     cout << endl;
     return;
+}
+
+TreePtr Tree::_findMin(TreePtr fr){
+    while (fr->lchild != Nil)
+        fr = fr->lchild;
+    return fr;
 }
