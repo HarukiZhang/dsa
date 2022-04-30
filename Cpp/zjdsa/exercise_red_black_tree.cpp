@@ -13,10 +13,10 @@ struct TNode {
     TreePtr parent, lchild, rchild;
 };
 
-class Tree {
+class RblTree {
 public:
-    Tree();
-    ~Tree();
+    RblTree();
+    ~RblTree();
     void insert(DataType x);
     void erase(DataType x);
     void traversal();
@@ -36,7 +36,7 @@ private:
 
 
 int main(){
-    Tree T;
+    RblTree T;
     T.insert(41);
     T.traversal();
     T.insert(38);
@@ -49,17 +49,34 @@ int main(){
     T.traversal();
     T.insert(8);
     T.traversal();
+    T.insert(31);
+    cout << "Start to erase:" << endl;
+    T.erase(99);
+    T.traversal();
+    T.erase(8);
+    T.traversal();
+    T.erase(12);
+    T.traversal();
+    T.erase(19);
+    T.traversal();
+    T.erase(31);
+    T.traversal();
+    T.erase(38);
+    T.traversal();
+    T.erase(41);
+    T.traversal();
     return 0;
 }
 
-Tree::Tree(){
+RblTree::RblTree(){
     Nil = new TNode {0, Color::Black, nullptr };
     root = Nil;
 }
 
-Tree::~Tree(){
+RblTree::~RblTree(){
     queue<TreePtr> que;
-    que.push(root);
+    if (root != Nil)
+        que.push(root);
     while (!que.empty()){
         TreePtr crtP = que.front();
         que.pop();
@@ -72,8 +89,23 @@ Tree::~Tree(){
     delete Nil;
 }
 
+void RblTree::erase(DataType x){
+    TreePtr z = root;
+    while (z != Nil){
+        if (x < z->key)
+            z = z->lchild;
+        else if (x > z->key)
+            z = z->rchild;
+        else {
+            _erase_node(z);
+            return;
+        }
+    }
+    cout << x << " was Not Found when Erasing." << endl;
+    return;
+}
 
-void Tree::_transplant(TreePtr to, TreePtr fr){
+void RblTree::_transplant(TreePtr to, TreePtr fr){
     if (to->parent == Nil)//if to is root;
         root = fr;
     else if (to == to->parent->lchild)//if to is left child of its father;
@@ -83,7 +115,7 @@ void Tree::_transplant(TreePtr to, TreePtr fr){
     return;
 }
 
-void Tree::_erase_node(TreePtr z){
+void RblTree::_erase_node(TreePtr z){
     //x: the trace : points to the node being trans-ed;
     //x will be used as the base loc of _fixUp();
     TreePtr x;
@@ -126,7 +158,7 @@ void Tree::_erase_node(TreePtr z){
     return;
 }
 
-void Tree::_erase_FixUp(TreePtr x){
+void RblTree::_erase_FixUp(TreePtr x){
     //before calling this func, x was ensured to be Black;
     while (x != root && x->color == Color::Black){
         if (x == x->parent->lchild){
@@ -168,15 +200,40 @@ void Tree::_erase_FixUp(TreePtr x){
         }
         else {
             //same as then clause with "right" and "left" exchanged;
+            TreePtr w = x->parent->lchild;
+            if (w->color == Color::Red){
+                x->parent->color = Color::Red;
+                w->color = Color::Black;
+                _right_rotate(x->parent);
+                w = x->parent->lchild;
+            }
+            if (w->rchild->color == Color::Black && w->lchild->color == Color::Black){
+                w->color = Color::Red;
+                x = x->parent;
+            }
+            else {
+                if (w->lchild->color == Color::Black){
+                    w->color = Color::Red;
+                    w->rchild->color = Color::Black;
+                    _left_rotate(w);
+                    w = x->parent->lchild;
+                }
+                w->color = x->parent->color;
+                x->parent->color = Color::Black;
+                w->lchild->color = Color::Black;
+                _right_rotate(x->parent);
+                x = root;
+            }
         }
     }
     x->color = Color::Black;
     return;
 }
 
-void Tree::insert(DataType x){
+void RblTree::insert(DataType x){
     //initially, root = Nil;
-    TreePtr crt = root, last = Nil;
+    TreePtr crt = root,
+        last = Nil;  //note: root->parent == Nil;
     bool isLeft = true;
     while (crt != Nil){
         last = crt;
@@ -184,11 +241,16 @@ void Tree::insert(DataType x){
             crt = crt->lchild;
             isLeft = true;
         }
-        else {
+        else if (x > crt->key){
             crt = crt->rchild;
             isLeft = false;
         }
+        else {
+            cout << "Duplicate key is discarded." << endl;
+            return;
+        }
     }
+    //if not duplicate, allocate a new Node, whose parent ptr points to last;
     TreePtr tmp = new TNode {x, Color::Red, last, Nil, Nil };
     if (last == Nil)
         root = tmp;
@@ -200,7 +262,7 @@ void Tree::insert(DataType x){
     return;
 }
 
-void Tree::_insert_FixUp(TreePtr me){
+void RblTree::_insert_FixUp(TreePtr me){
     TreePtr father = me->parent,
         grandpa = father->parent;
     while (father->color == Color::Red){
@@ -215,7 +277,7 @@ void Tree::_insert_FixUp(TreePtr me){
                 father = me->parent;
                 grandpa = father->parent;
             }
-            else {
+            else {//if unclo is Black;
   /*case 2*/    if (me == father->rchild){
                     me = father;//me being shifted-up 1 level;
                     _left_rotate(me);//me being rotated-down 1 level;
@@ -258,7 +320,7 @@ void Tree::_insert_FixUp(TreePtr me){
     return;
 }
 
-void Tree::_left_rotate(TreePtr me){
+void RblTree::_left_rotate(TreePtr me){
     TreePtr rtChild = me->rchild,
         grandpa = me->parent;
     me->rchild = rtChild->lchild;
@@ -275,7 +337,7 @@ void Tree::_left_rotate(TreePtr me){
     return;
 }
 
-void Tree::_right_rotate(TreePtr me){
+void RblTree::_right_rotate(TreePtr me){
     TreePtr lfChild = me->lchild,
         grandpa = me->parent;
     me->lchild = lfChild->rchild;
@@ -292,7 +354,7 @@ void Tree::_right_rotate(TreePtr me){
     return;
 }
 
-void Tree::traversal(){
+void RblTree::traversal(){
     queue<TreePtr> que;
     que.push(root);
     while (!que.empty()){
@@ -313,7 +375,7 @@ void Tree::traversal(){
     return;
 }
 
-TreePtr Tree::_findMin(TreePtr fr){
+TreePtr RblTree::_findMin(TreePtr fr){
     while (fr->lchild != Nil)
         fr = fr->lchild;
     return fr;
