@@ -29,6 +29,7 @@ private:
     //merge i-th key of sat AND all keys of sal INTO dest;
     void _merge(TreePtr dest, TreePtr sat, int i, TreePtr sal);
     void _erase_recur(TreePtr x, KeyType k);//to erase key k from node x;
+    void _erase_key(TreePtr x, int i);//designate to erase i-th key of node x;
 
     int size = 0, height = 0;
     TreePtr root = nullptr;
@@ -36,25 +37,71 @@ private:
 
 int main(){
     BTree T;
+
+    T.erase('P');//testing empty tree erasing;
+
+    T.insert('F');
+    T.erase('F');//erase to empty;
+
     T.insert('F');
     T.insert('S');
-    T.insert('Q'); T.traversal(); cout << endl;
+    T.insert('Q');
     T.insert('K');
-    T.insert('C'); T.traversal(); cout << endl;
+    T.insert('C');
     T.insert('L');
     T.insert('H');
     T.insert('T');
-    T.insert('V'); T.traversal(); cout << endl;
-    T.insert('W'); T.traversal(); cout << endl;
+    T.insert('V');
+    T.insert('W');
+    T.traversal(); cout << endl;
+
+    T.erase('W');//direct erasing;
+    cout << "direct erase W in a leaf node:" << endl;
+    T.traversal(); cout << endl;
+    T.erase('T');//merge two children;
+    cout << "erase T : merge two children => goto new-merged-child to erase T:" << endl;
+    T.traversal(); cout << endl;
+    
+    T.insert('W');
+    T.insert('T');
+    //reinsert W and T;
     T.insert('M');
     T.insert('R');
-    T.insert('N'); T.traversal(); cout << endl;
+    T.insert('N');
+    T.insert('P');
+    T.insert('A');
+    T.insert('B');
+    cout << "insert some new keys:" << endl;
+    T.traversal(); cout << endl;
 
-    T.erase('P');//delete a non-exist key;
+    T.erase('F');
+    cout << "erase F : merge two children THEN borrow from left child : " << endl;
     T.traversal(); cout << endl;
-    T.erase('T');//will decrese the height;
+    T.erase('M');//borrow from right child;
+    cout << "erase M : borrow from right child : " << endl;
     T.traversal(); cout << endl;
-    T.erase('C');
+    T.erase('L');
+    cout << "erase L : merge md to lf and goto lf to erase L:" << endl;
+    T.traversal(); cout << endl;
+
+    T.insert('Y');
+    T.insert('Z');
+    T.erase('S');
+    T.erase('T');
+    cout << "preparation for erasing R:" << endl;
+    T.traversal(); cout << endl;
+
+    T.erase('R');
+    cout << "erase R : borrow from right brother : " << endl;
+    T.traversal(); cout << endl;
+
+    T.insert('F');
+    T.insert('M');
+    cout << "re-insert F and M:" << endl;
+    T.traversal(); cout << endl;
+
+    T.erase('G');//delete a non-exist key;
+    cout << "try to erase a non-exist key G, structure was changed:" << endl;
     T.traversal(); cout << endl;
     
     // T.insert('P');
@@ -69,32 +116,39 @@ int main(){
 
 }
 
+void BTree::_erase_key(TreePtr x, int i){
+    //if the key to be erased is the last key, no need to move any key,
+    //just decresing x->n will suffice;
+    while (++i < x->n){
+        x->keys[i - 1] = x->keys[i];
+        x->ptrs[i] = x->ptrs[i + 1];
+    }
+    --x->n;
+    return;
+}
+
 void BTree::_erase_recur(TreePtr x, KeyType k){
     int i = 0;//i for keys;
     while (i < x->n && k >= x->keys[i]) ++i;
     int j = i--;//j for ptrs;
     if (i >= 0 && x->keys[i] == k){//if k is within x;
         if (x->isLeaf){
-            ++i;//starts after i;
-            while (i < x->n){
-                x->keys[i - 1] = x->keys[i];
-                x->ptrs[i] = x->ptrs[i + 1];
-                ++i;
-            }
-            --x->n;
+            _erase_key(x, i);
             --size;
+            //root node space can not be deleted;
         }
         else {//x is an internal node;
             TreePtr y = x->ptrs[j - 1];//nodes less than k;
             TreePtr z = x->ptrs[j];//nodes equal or greater than k;
             if (y->n >= kMinDeg){//if the subnode before i has at-least kMinDeg keys;
                 x->keys[i] = y->keys[y->n - 1];//substitute i in x with the last key in y;
-                _erase_recur(y, x->keys[i]);//recursively erase the last key in y;
+                //recursively erase the last key in y;
+                _erase_recur(y, y->keys[y->n - 1]);
             }
             else {
                 if (z->n >= kMinDeg){
                     x->keys[i] = z->keys[0];
-                    _erase_recur(z, x->keys[i]);
+                    _erase_recur(z, z->keys[0]);
                 }
                 else {
                     //merge i-th key of x (key k) and all keys of z into y;
@@ -115,38 +169,42 @@ void BTree::_erase_recur(TreePtr x, KeyType k){
             //borrow key from siblings;
             i = i >= 0 ? i : 0;//force i to be valid;
             if (j - 1 >= 0 && (lf = x->ptrs[j - 1])->n >= kMinDeg){
-                int iMd = md->n - 1;
-                while (iMd >= 0){
+                //make space in md;
+                md->ptrs[md->n + 1] = md->ptrs[md->n];
+                int iMd = md->n;//substitute the last key of md;
+                while (--iMd >= 0){
                     md->keys[iMd + 1] = md->keys[iMd];
-                    md->ptrs[iMd + 2] = md->ptrs[iMd + 1];
-                    --iMd;
-                }
-                md->ptrs[iMd + 2] = md->ptrs[iMd + 1];
-                md->keys[0] = x->keys[i];
-                md->ptrs[0] = lf->ptrs[lf->n];
+                    md->ptrs[iMd + 1] = md->ptrs[iMd];
+                }//space maked;
+                //tri-nodes exchanging;
+                md->keys[0] = x->keys[i];//down-shift the i-th key of node x;
+                md->ptrs[0] = lf->ptrs[lf->n];//the last ptr of lf node;
+                x->keys[i] = lf->keys[lf->n - 1];//the last key of lf node;
+                //one plus one minus: causes no size change;
                 ++md->n;
-                x->keys[i] = lf->keys[lf->n - 1];
                 --lf->n;
             }
             else if (j + 1 <= x->n && (rt = x->ptrs[j + 1])->n >= kMinDeg){
-                int iMd = md->n;
-                md->keys[iMd] = x->keys[i];
-                x->keys[i] = rt->keys[0];
-                md->ptrs[iMd + 1] = rt->ptrs[0];
-                ++md->n;
-                int iRt = 1;
-                while (iRt < rt->n){
+                int iMd = md->n;//insert after all keys of md;
+                //because j + 1 <= x->n, i + 1 is valid;
+                //down-shift (i+1)-th key TO node md after all its keys;
+                md->keys[md->n] = x->keys[i + 1];
+                md->ptrs[md->n + 1] = rt->ptrs[0];//the 1st ptr of rt;
+                x->keys[i + 1] = rt->keys[0];//the 1st key of rt;
+                //make space in rt;
+                int iRt = 0;
+                while (++iRt < rt->n){//actualy starting move from index 1;
                     rt->keys[iRt - 1] = rt->keys[iRt];
                     rt->ptrs[iRt - 1] = rt->ptrs[iRt];
-                    ++iRt;
                 }
-                rt->ptrs[iRt - 1] = rt->ptrs[iRt];
+                rt->ptrs[iRt - 1] = rt->ptrs[iRt];//space maked;
+                //one plus one minus: causes no size change;
+                ++md->n;
                 --rt->n;
             }
             else {//three of brothers all has less than kMinDeg keys;
                 if (lf != nullptr){
                     //merge i-th key of x and all keys of md into lf;
-                    //so that the key k is also moved into lf;
                     _merge(lf, x, i, md);
                     md = lf;//for uniformity of calling of _erase_recur();
                 }
@@ -155,20 +213,18 @@ void BTree::_erase_recur(TreePtr x, KeyType k){
                     _merge(md, x, i, rt);
                     //md is still md;
                 }
-                // TreePtr td = lf;//td: to_be_deleted;
-                // if (td == nullptr) td = rt;
-                // //merge i-th key of x and all keys of brother into md;
-                // _merge(md, x, i, td);
             }
         }
+        //the key k is either in the md, or
+        //the key k has been moved into lf, and md == lf;
         _erase_recur(md, k);
     }
-    //what if k is not in the tree;
     return;
 }
 
 void BTree::erase(KeyType k){
-    _erase_recur(root, k);
+    if (root->n != 0)//non-empty tree;
+        _erase_recur(root, k);
     return;
 }
 
@@ -227,13 +283,9 @@ void BTree::_merge(TreePtr dest, TreePtr sat, int i, TreePtr sal){
     //uniformly move right node into left node, so that all keys just simply
     //be inserted after (on right side of) dest's own keys;
     int &iD = dest->n;
-    dest->keys[iD++] = sat->keys[i++];
-    while (i < sat->n){
-        sat->keys[i - 1] = sat->keys[i];
-        sat->ptrs[i] = sat->ptrs[i + 1];
-        ++i;
-    }
-    --sat->n;
+    dest->keys[iD++] = sat->keys[i];
+    _erase_key(sat, i);
+    //moving all keys of sal to dest;
     int iA = 0;
     while (iA < sal->n){
         dest->keys[iD] = sal->keys[iA];
@@ -242,12 +294,13 @@ void BTree::_merge(TreePtr dest, TreePtr sat, int i, TreePtr sal){
         ++iA;
     }
     dest->ptrs[iD] = sal->ptrs[iA];
+    //deal with root changing;
     if (sat == root && sat->n == 0) {
-        root = dest;
+        root = dest;//change root;
         --height;
         delete sat;
     }
-    delete sal;
+    delete sal;//after merging, sal is always needed to delete;
     return;
 }
 
