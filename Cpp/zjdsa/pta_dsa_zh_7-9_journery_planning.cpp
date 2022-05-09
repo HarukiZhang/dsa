@@ -70,12 +70,6 @@ void read(){
     return;
 }
 
-int getDist(int c1, int c2){
-    for (Highway hw : map[c1])
-        if (hw.to == c2) return hw.len;
-    return kInfty;
-}
-
 struct QElem {
     int city, dist; //crt len that already passed;
     bool operator<(const QElem &qe) const {
@@ -89,19 +83,18 @@ void Dijkstra(){
     priority_queue<QElem> pque;
     for (int i = 0; i < cityN; ++i)
         dist[i] = expenses[i] = kInfty;
-    for (Highway hw : map[staS])
-        dist[hw.to] = hw.len;
     /*algorithm*/
     ved[staS] = true;
     dist[staS] = 0;
     expenses[staS] = 0;
-    pque.push( QElem {staS, 0} );
+    QElem tmpE {staS, 0};
+    pque.push( tmpE );
     while ( !pque.empty() ){
         QElem crt = pque.top();
         pque.pop();
         for (Highway hw : map[crt.city]){
             /*update dist and exps no matter collected or not;*/
-            int tmpDist = dist[crt.city] + getDist(crt.city, hw.to);
+            int tmpDist = dist[crt.city] + hw.len;
             int tmpExps = expenses[crt.city] + hw.charge;
             if (tmpDist < dist[hw.to]){
                 dist[hw.to] = tmpDist;
@@ -114,7 +107,9 @@ void Dijkstra(){
             /*collect only the un-collected;*/
             if ( ved[hw.to] == false ){
                 ved[hw.to] = true;
-                pque.push( QElem {hw.to, dist[hw.to]} );
+                tmpE.city = hw.to;
+                tmpE.dist = dist[hw.to];
+                pque.push( tmpE );
             }
         }
     }
