@@ -46,8 +46,6 @@ public:
     using UCS_ptr = int;
     UCSet(int sz);
     bool unionSet(EdgePtr ePtr);
-    bool checkSet(EdgePtr ePtr);
-    int size();
 private:
     UCS_ptr find(UCS_ptr x);
     
@@ -98,18 +96,20 @@ Sample output:
 
 int Kruskal(MinHeap &unCollected, UCSet &MST){
     /*initialization*/
-    int WPL = 0;
+    int WPL = 0; // weighted path len;
     int eN_unC = roadM,  //edge num in uncollected set;
         eN_MST = 0,      //edge num in MST;
         eN_exp = cityN - 1;  //expected edge num;
     /*algorithm*/
-    while ( eN_MST < eN_exp && eN_unC != 0){
-        int crtE = unCollected.pop();
-        --eN_unC; // == unCollected.size();
+    while ( eN_MST < eN_exp && eN_unC != 0){//while set A does not form a spanning tree;
+        int crtE = unCollected.pop();//find the min-weighted edge from uncollected set;
+        --eN_unC;
 
-        /*if crt edge do not constitute circulation;
-            unionSet() method will check before union opt;*/
-        if ( MST.unionSet(crtE) ){//if already in one set, .unionSet() return false;
+        /*if crt edge do not form cycle;
+            i.e. the edge is safe for set A;
+            p.s. unionSet() method will check before union opt;*/
+        if ( MST.unionSet(crtE) ){
+            //if safe, union the edge into set A;
             ++eN_MST;
             WPL += edges[crtE].exps;
         }
@@ -158,7 +158,6 @@ void MinHeap::percDown(MHeapPtr mhPtr){
     return;
 }
 
-
 UCSet::UCSet(int sz) : capacity{sz} {
     for (UCS_ptr i = 0; i <= sz; ++i)
         list[i] = -1;//each vertex is initially an independent tree;
@@ -177,12 +176,6 @@ bool UCSet::unionSet(EdgePtr ePtr){
         list[x] = y;
     }
     return true; //actually union has been done;
-}
-
-bool UCSet::checkSet(EdgePtr ePtr){
-    UCS_ptr x = find(edges[ePtr].vFrom);
-    UCS_ptr y = find(edges[ePtr].vTo);
-    return x == y;
 }
 
 UCSet::UCS_ptr UCSet::find(UCS_ptr x){
