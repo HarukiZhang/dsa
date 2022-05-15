@@ -47,7 +47,7 @@ void merge_sort(int arr[], int size);
 void merge_sort_nonrec(int arr[], int size, int intvl);
 void merge_sort_one_turn(int arr[], int size, int intvl);
 int getMaxIntvl();
-void judge();
+bool judge_insertion(int &idx);
 void solution();
 
 int main(){
@@ -90,34 +90,31 @@ void solution(){
     for (int i = 0; i < N; ++i)
         cin >> partial[i];
 
-    judge();
-
-    return;
-}
-
-void judge(){
-    int maxAscendLen = 1;
-    //count max asceding substr length;
-    int i;
-    for (i = 0; i < N - 1 && partial[i] <= partial[i + 1]; ++i) ++maxAscendLen;
-    //compare post-n-nums whether intact;
-    for (++i; i < N && partial[i] == origin[i]; ++i);
-    if (i == N){
+    int idx;
+    if (judge_insertion(idx)){
         cout << "Insertion Sort" << endl;
-        insertion_sort_one_turn(partial, N, maxAscendLen);
+        insertion_sort_one_turn(partial, N, idx);
     }
-    else {//is merge sort;
-        //get max interval of merge sort;
+    else {
         int intvl = getMaxIntvl();
         cout << "Merge Sort" << endl;
         merge_sort_one_turn(partial, N, intvl);
     }
-    bool fir = true;
     for (int i = 0; i < N; ++i){
-        if (fir) fir = false;
-        else cout << ' ';
+        if (i) cout << ' ';
         cout << partial[i];
     }
+    return;
+}
+
+bool judge_insertion(int &idx){
+    idx = 1;
+    //count max asceding substr length;
+    int i;
+    for (i = 0; i < N - 1 && partial[i] <= partial[i + 1]; ++i) ++idx;
+    //compare post-n-nums whether intact;
+    for (++i; i < N && partial[i] == origin[i]; ++i);
+    return i == N;
     return;
 }
 
@@ -206,7 +203,8 @@ int getMaxIntvl(){
     //so the initial intvl is 2;
     //and the first is to test the interval of 4;
     for (; intvl <= N; intvl <<= 1){
-        for (int i = 0; i + intvl < N; i += 2 * intvl){
+        int next_itvl = intvl << 1;
+        for (int i = 0; i + intvl < N; i += next_itvl){
             //only need to test the order between two sub-interval;
             if (partial[i + intvl - 1] > partial[i + intvl])
                 return intvl;
