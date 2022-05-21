@@ -14,7 +14,7 @@ struct Node {
     //-2 : no submission ; -1 : compile error;
 };
 
-int userN, probK, submM;
+int userN, probK, submM;//submM is at least 1 because at least one user can be shown;
 int full_scores[kMaxProblem];
 Node users[kMaxLen];
 struct BuckHead {
@@ -46,9 +46,9 @@ void output(int idx, int rank){
     Node &refN = users[idx];
     cout << rank << ' ';
     cout << setfill('0') << setw(5) << refN.uid;
-    cout << ' ' << refN.tot_score << ' ';
+    cout << ' ' << refN.tot_score;
     for (int j = 1; j <= probK; ++j){
-        if (j != 1) cout << ' ';
+        cout << ' ';
         if (refN.scores[j] == -2)
             cout << "-";
         else if (refN.scores[j] <= 0)
@@ -61,6 +61,7 @@ void output(int idx, int rank){
 
 int main(){
     // ios::sync_with_stdio(false);
+    
     freopen("E:\\in.txt", "r", stdin);
     cin >> userN >> probK >> submM;
     for (int i = 1; i <= probK; ++i)
@@ -93,14 +94,16 @@ int main(){
         return 0;
     }
     //bucket sort by perfectly solved problem num;
-    for (int i = 1; i <= userN; ++i){
-        BuckHead &crtBH = buckets[users[i].perf_num];
-        if (crtBH.first != -1){
-            users[crtBH.last].child = i;
-            crtBH.last = i;
-        }
-        else {
-            crtBH.first = crtBH.last = i;
+    for (int i = 1; i <= userN; ++i){//iterate according to id ascending;
+        if (users[i].show){
+            BuckHead &crtBH = buckets[users[i].perf_num];
+            if (crtBH.first != -1){
+                users[crtBH.last].child = i;
+                crtBH.last = i;
+            }
+            else {
+                crtBH.first = crtBH.last = i;
+            }
         }
     }
     //bucket sort collection;
@@ -120,38 +123,69 @@ int main(){
     }
     users[lastTail].child = -1;//set NULL;
 
-    //bucket sort by total score;
-    int tot_full_score = 0;
-    for (int i = 1; i <= probK; ++i)
-        tot_full_score += full_scores[i];
-    
-    for (int i = head; i != -1; i = users[i].child){
-        if (users[i].show){
-            BuckHead &crtBH = buckets[users[i].tot_score];
-            if (crtBH.first != -1){
-                users[crtBH.last].child = i;
-                crtBH.last = i;
-            }
-            else {
-                crtBH.first = crtBH.last = i;
-            }
+    // //compute total full score;
+    // int tot_full_score = 0;
+    // for (int i = 1; i <= probK; ++i)
+    //     tot_full_score += full_scores[i];
+    // //initialize buckets;
+    // for (int i = 0; i <= tot_full_score; ++i)
+    //     buckets[i].first = buckets[i].last = -1;
+    // //bucket sort by total score;
+    // for (int i = head; i != -1; i = users[i].child){
+    //     BuckHead &crtBH = buckets[users[i].tot_score];
+    //     if (crtBH.first != -1){
+    //         users[crtBH.last].child = i;
+    //         crtBH.last = i;
+    //     }
+    //     else {
+    //         crtBH.first = crtBH.last = i;
+    //     }
+    // }
+    // //bucket sort collection;
+    // head = lastTail = -1;
+    // for (int i = tot_full_score; i >= 0; --i){//total score non-increasing;
+    //     if (buckets[i].first != -1){
+    //         if (head == -1){
+    //             head = buckets[i].first;
+    //         }
+    //         else {
+    //             users[lastTail].child = buckets[i].first;
+    //         }
+    //         lastTail = buckets[i].last;
+    //         buckets[i].first = buckets[i].last = -1;
+    //     }
+    // }
+    // users[lastTail].child = -1;
+
+
+    //bubble sort;
+    bool flag;
+    do {
+        flag = false;
+        int i = head;
+        int tchild = users[i].child;
+        int father = i;
+        if (users[i].tot_score < users[tchild].tot_score){
+            int gson = users[tchild].child;
+            users[tchild].child = i;
+            users[i].child = gson;
+            head = tchild;
+            father = tchild;
+            flag = true;
         }
-    }
-    //bucket sort collection;
-    head = lastTail = -1;
-    for (int i = tot_full_score; i >= 0; --i){//total score non-increasing;
-        if (buckets[i].first != -1){
-            if (head == -1){
-                head = buckets[i].first;
+        else i = users[i].child;
+        for (; (tchild = users[i].child) != -1; ){
+            if (users[i].tot_score < users[tchild].tot_score){
+                int gson = users[tchild].child;
+                users[tchild].child = i;
+                users[i].child = gson;
+                users[father].child = tchild;
+                father = tchild;
+                flag = true;
             }
-            else {
-                users[lastTail].child = buckets[i].first;
-            }
-            lastTail = buckets[i].last;
-            buckets[i].first = buckets[i].last = -1;
+            else i = users[i].child;
         }
-    }
-    users[lastTail].child = -1;
+    } while (flag);
 
     //output
     int cnt = 1, rank = 1, lastTotScor = -1;
