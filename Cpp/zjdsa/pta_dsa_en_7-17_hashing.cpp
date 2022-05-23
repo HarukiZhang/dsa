@@ -41,21 +41,18 @@ int hashTbl[kMaxSize];
 
 bool isPrime(int n){
     if (n < 2) return false;//1
-    else if (n < 4) return true;//2 and 3;
-    else {
-        int stp = ceil(sqrt(n));
-        for (int i = 2; i <= stp; ++i)
-            if (n % i == 0)
-                return false;
-        return true;
-    }
+    else if (n == 2) return true;
+    int stp = ceil(sqrt(n));
+    for (int i = 3; i <= stp; i += 2)
+        if (n % i == 0) return false;
+    return true;
 }
 
 int getNextPrime(int n){
-    if ( isPrime(n) ) return n;
-    int res;
-    for (res = n + 1; !isPrime(res); ++res);
-    return res;
+    if (n <= 2) return 2;
+    else if (n & 1) while (!isPrime(n)) n += 2;
+    else for (++n; !isPrime(n); n += 2);
+    return n;
 }
 
 int hashFunc(int x){
