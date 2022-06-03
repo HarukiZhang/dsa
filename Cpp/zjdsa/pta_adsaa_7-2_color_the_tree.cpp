@@ -1,19 +1,18 @@
 #include<iostream>
-#include<stack>
 using namespace std;
 
 constexpr int kMaxLen = 64;
 
 struct Node {
     bool red = true;
-    int key, parent = -1, left = -1, right = -1, bheight = 0;
+    int key, left = -1, right = -1, maxh = 0, minh = 0;
 };
 
 int K, N;
 Node list[kMaxLen];
 
-bool psudo_fix_up(int idx);
-int hcheck(int idx);
+void get_index();
+void height_check(int idx, bool &h_flag);
 
 int main(){
     freopen("E:\\in.txt", "r", stdin);
@@ -21,109 +20,71 @@ int main(){
     cin >> K;
     while (K--){
         cin >> N;
-        //input;
-        for (int i = 0 ; i < N; ++i){
-            cin >> list[i].key;
-        }
-        //indexing and painting;
-        list[N].red = false;//regard the N-th Node as Nil node;
-        for (int i = 0; i < N; ++i){
-            list[i].parent = list[i].left = list[i].right = N;
-            list[i].red = true;            
-        }
-        list[N - 1].red = false;//paint root to black;
-        for (int i = N - 2; i >= 0; --i){
-            int crt = N - 1, last = crt;
-            bool isleft = false;
-            while (crt != N){
-                last = crt;
-                if (list[i].key < list[crt].key){
-                    isleft = true;
-                    crt = list[crt].left;                    
-                }
-                else {
-                    isleft = false;
-                    crt = list[crt].right;
-                }
-            }
-            if (isleft) list[last].left = i;
-            else list[last].right = i;
-            list[i].parent = last;
-        }
-        stack<int> stk;
-        int idx = N - 1;
         bool flag = true;
-        while (idx != N || !stk.empty()){
-            while (idx != N){
-                if (list[idx].right != N)
-                    stk.push(list[idx].right);
-                if (list[idx].red == true){
-                    flag = psudo_fix_up(idx);
-                    if (!flag) break;
-                }
-                idx = list[idx].left;
-            }
-            if (!flag) break;
-            if (!stk.empty()){
-                idx = stk.top();
-                stk.pop();
-            }
+        if (N == 0) flag = false;
+        else {
+            //input;
+            for (int i = 0 ; i < N; ++i) cin >> list[i].key;
+            get_index();
+            if (N - 1 >= 0) height_check(N - 1, flag);
         }
-        hcheck(N - 1);
         if (flag) cout << "Yes" << endl;
         else cout << "No" << endl;
     }
     return 0;
 }
 
-int hcheck(int idx){
-    int bhl = 0, bhr = 0;
-    if (list[idx].left != N){
-        bhl = hcheck(list[idx].left);
-    }
-    if (list[idx].right != N){
-        bhr = hcheck(list[idx].right);
-    }
-    if (bhl == bhr){
-        if (!list[list[idx].left].red || !list[list[idx].right].red)
-            list[idx].bheight = bhl + 1;
-        else list[idx].bheight = bhl;
-        return list[idx].bheight;
-    }
-    else {
-        return -1;
-    }
+void height_check(int idx, bool &h_flag){
+    //core logic: for any node, among its simple routes to leaf,
+    //the longest route is at-most twice the length of the shortest one;
+    //this property is assured by RB-property 4 and 5;
+    //ie, 4) no repeated red node to be adjacent;
+    //and 5) for any node, all its simple routes towards leaf have same black height;
+    if (list[idx].left != N)
+        height_check(list[idx].left, h_flag);
+    if (list[idx].right != N)
+        height_check(list[idx].right, h_flag);
+
+    int max = list[list[idx].left].maxh;
+    if (list[list[idx].right].maxh > max)
+        max = list[list[idx].right].maxh;
+    int min = list[list[idx].left].minh;
+    if (list[list[idx].right].minh < min)
+        min = list[list[idx].right].minh;
+
+    list[idx].maxh = ++max;
+    list[idx].minh = ++min;
+    
+    if (max > 2 * min) h_flag = false;
+    return;
 }
 
-bool psudo_fix_up(int idx){
-    //only red node should call this function;
-    int p = list[idx].parent, gp = list[p].parent;
-    while (list[p].red == true){
-        if (p = list[gp].left){
-            int uc = list[gp].right;
-            if (list[uc].red == true){
-                list[gp].red = true;
-                list[uc].red = false;
-                list[p].red = false;
-                idx = gp;
-                p = list[idx].parent;
-                gp = list[p].parent;
-            }
-            else return false;
-        }
-        else {
-            int uc = list[gp].left;
-            if (list[uc].red == true){
-                list[gp].red = true;
-                list[uc].red = false;
-                list[p].red = false;
-                idx = gp;
-                p = list[idx].parent;
-                gp = list[p].parent;
-            }
-            else return false;
-        }
+void get_index(){
+    //initialization;
+    for (int i = 0; i <= N; ++i){
+        list[i].left = list[i].right = N;
+        list[i].red = true;
+        list[i].maxh = list[i].minh = 0;
     }
-    list[N - 1].red = false;//force root to be black;
-    return true;
+    //indexing;
+    list[N].red = false;//regard the N-th Node as Nil node;
+    list[N - 1].red = false;//paint root to black;
+    for (int i = N - 2; i >= 0; --i){//N - 2 : the first node under root;
+        int crt = N - 1, last = crt;
+        bool isleft = false;
+        while (crt != N){
+            last = crt;
+            if (list[i].key < list[crt].key){
+                isleft = true;
+                crt = list[crt].left;
+            }
+            else {
+                isleft = false;
+                crt = list[crt].right;
+            }
+        }
+        if (isleft) list[last].left = i;
+        else list[last].right = i;
+    }
+    return;
 }
